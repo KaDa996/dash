@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en" data-bh-theme="buckholt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Builder – v5.9 (close on save, title actions, drag-anywhere, horizontal trigger)</title>
+  <link rel="stylesheet" href="compiled.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <style>
+    :root { --panel-width: 420px; --panel-tab: 44px; }
+
+    /* ===== App header ===== */
+    .app-header { position: sticky; top: 0; z-index: 1100; background: var(--ui-background-01); border-bottom: 1px solid var(--ui-border-02); }
+    .app-header .container { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; padding: .75rem 1rem; }
+    .logo-circle { width: 32px; height: 32px; border-radius: 50%; background: #1976d2; display: inline-block; }
+    .search-bar { display: flex; align-items: center; gap: .5rem; }
+    .search-bar .form-control { width: 100%; max-width: 480px; }
+    .header-actions { display: flex; align-items: center; gap: .75rem; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--ui-background-03); font-weight: 600; }
+
+    /* ===== Title row ===== */
+    .dashboard-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    #titleActions .btn { gap: .5rem; }
+    /* place title actions next to the Dashboard title */
+    .dashboard-header .text-block { display: flex; align-items: center; gap: 1rem; }
+
+    /* ===== Collapsible/close panel ===== */
+    .widget-panel { position: fixed; top: 0; right: 0; height: 100vh; width: var(--panel-width); max-width: 90vw; background: var(--ui-background-01); border-left: 1px solid var(--ui-border-02); box-shadow: var(--shadow-lg); transform: translateX(100%); transition: transform .25s ease; z-index: 2000; display: flex; flex-direction: column; }
+    .widget-panel.open { transform: translateX(0); }
+    /* Collapsed = fully hidden (panel not visible) */
+    .widget-panel.collapsed { transform: translateX(100%); }
+    .widget-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--ui-border-02); position: sticky; top: 0; background: var(--ui-background-01); z-index: 1; }
+    .widget-panel-body { flex: 1 1 auto; overflow: auto; padding: 1rem; }
+
+    /* External trigger (horizontal) */
+    .panel-trigger { position: fixed; right: 12px; top: 88px; z-index: 2050; display: inline-flex; align-items: center; gap: .5rem; padding: .5rem .75rem; border: 1px solid var(--ui-border-02); border-radius: .5rem; background: var(--ui-background-01); box-shadow: var(--shadow-md); cursor: pointer; }
+    .panel-trigger .label { font-weight: 600; }
+    .panel-trigger.hidden { display: none; }
+
+    .template-list { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+    .widget-template { border: 1px dashed var(--ui-border-02); border-radius: var(--border-radius-md); padding: .5rem; background: var(--ui-background-03); overflow: hidden; }
+    .widget-template[draggable="true"] { cursor: grab; }
+    .widget-template:active { cursor: grabbing; }
+
+    /* ===== Proportional preview scaling ===== */
+    :root { --preview-cell: 56px; --preview-gap: 8px; --preview-scale: .30; }
+    .preview-labels { display: flex; align-items: center; gap: .5rem; margin-bottom: .375rem; }
+    .label-chip { padding: .125rem .375rem; border-radius: .375rem; border: 1px solid var(--ui-border-02); background: var(--ui-background-01); font-size: .75rem; line-height: 1; }
+
+    .preview-canvas { position: relative; overflow: hidden; border-radius: .5rem; background: var(--ui-background-01); }
+    .preview-canvas::before { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background-size: calc(var(--preview-cell)) calc(var(--preview-cell)); background-image: linear-gradient(to right, rgba(0,0,0,.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,.08) 1px, transparent 1px); }
+    .preview-content { position: relative; transform: scale(var(--preview-scale)); transform-origin: top left; width: max-content; height: max-content; }
+
+    /* Make the unscaled preview content exactly the canvas size divided by the scale
+        so the scaled result fills the preview-canvas. Also ensure the card fills it. */
+    .preview-content {
+      width: calc(100% / var(--preview-scale));
+      height: calc(100% / var(--preview-scale));
+    }
+    .preview-content .card {
+      width: 100%;
+      height: 100%;
+    }
+    .preview-content .card .card-body {
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* preview footprints */
+    .preview-xs .preview-canvas { width: calc(var(--preview-cell)*1); height: calc(var(--preview-cell)*1); }
+    .preview-s  .preview-canvas { width: calc(var(--preview-cell)*2 + var(--preview-gap)); height: var(--preview-cell); }
+    .preview-m  .preview-canvas { width: calc(var(--preview-cell)*2 + var(--preview-gap)); height: calc(var(--preview-cell)*2 + var(--preview-gap)); }
+    .preview-l  .preview-canvas { width: calc(var(--preview-cell)*3 + var(--preview-gap)*2); height: calc(var(--preview-cell)*3 + var(--preview-gap)*2); }
+
+    /* ===== Dashboard and guides ===== */
+    #grid { position: relative; background: var(--ui-background-02); border-radius: var(--border-radius-lg); }
+    .grid-bg, .grid-lines { display: none; }
+    .is-edit #grid .grid-bg, .is-edit #grid .grid-lines { display: block; }
+    .grid-bg { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background-size: 184px 184px; background-image: linear-gradient(to right, rgba(0,0,0,.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,.12) 1px, transparent 1px); }
+    .grid-lines { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background-image: repeating-linear-gradient(to right, transparent 0, transparent 160px, rgba(0,0,0,.06) 160px, rgba(0,0,0,.06) 184px), repeating-linear-gradient(to bottom, transparent 0, transparent 160px, rgba(0,0,0,.06) 160px, rgba(0,0,0,.06) 184px); background-size: 184px 184px; }
+
+    /* ===== Placed widgets ===== */
+    .placed { position: absolute; }
+    .placed .card { height: 100%; }
+    .placed .card-body { height: 100%; overflow: hidden; }
+    .placed .widget-controls { position: absolute; top: .25rem; right: .25rem; display: none; gap: .25rem; z-index: 5; }
+    .is-edit .placed .widget-controls { display: flex; }
+    .dragging { opacity: .85; }
+
+    /* size-based padding for placed & previews */
+    .size-xs .card-body, .preview-xs .card-body { padding: 1rem; }
+    .size-s  .card-body, .preview-s  .card-body { padding: 1rem; }
+    .size-m  .card-body, .preview-m  .card-body { padding: 2rem; }
+    .size-l  .card-body, .preview-l  .card-body { padding: 2rem; }
+
+    /* controls */
+    .control-trash { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; }
+    .control-trash:hover { background: var(--ui-background-03); }
+
+    /* drop previews + reject */
+    .drop-preview {
+      position: absolute;
+      /* draw the dashed stroke outside the element so it sits outside the card (no inner padding) */
+      outline: 2px dashed var(--action-02);
+      outline-offset: 0;
+      border-radius: var(--border-radius-lg);
+      background: rgba(0,0,0,.03);
+      box-sizing: border-box;
+    }
+    .drop-preview.invalid {
+      outline-color: var(--support-error);
+      background: rgba(255,0,0,.06);
+    }
+
+    @keyframes bounce-reject { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
+    .reject-ghost {
+      position: absolute;
+      /* draw the solid stroke outside so rejection outline sits outside the card */
+      outline: 2px solid var(--support-error);
+      outline-offset: 0;
+      border-radius: var(--border-radius-lg);
+      background: rgba(255,0,0,.08);
+      animation: bounce-reject .6s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .widget-template.pulse { animation: pulse-outline .9s ease-out 0s 2; }
+
+    .drag-ghost { position: fixed; top: -1000px; left: -1000px; pointer-events: none; opacity: 1; }
+
+    /* Docking variants (left/right) */
+    .widget-panel.dock-left { left: 0; right: auto; border-left: none; border-right: 1px solid var(--ui-border-02); transform: translateX(-100%); }
+    .widget-panel.dock-left.open { transform: translateX(0); }
+    .widget-panel.dock-right { left: auto; right: 0; transform: translateX(100%); } /* default */
+    .widget-panel.dock-right.open { transform: translateX(0); }
+
+    /* trigger positions for docks */
+    .panel-trigger.dock-left { right: auto; left: 12px; top: 88px; }
+    .panel-trigger.dock-right { right: 12px; top: 88px; }
+
+    /* dock control buttons */
+    .dock-controls { display: inline-flex; gap: .25rem; align-items: center; margin-left: .25rem; }
+    .dock-btn { padding: .25rem; }
+    .dock-btn.active { background: var(--ui-background-02); }
+  </style>
+  <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+</head>
+<body>
+  <!-- ===== Header ===== -->
+  <header class="app-header">
+    <div class="container">
+      <div class="logo"><span class="logo-circle" aria-label="Logo"></span></div>
+      <div class="search-bar">
+        <input class="form-control" type="search" placeholder="Search for a client" aria-label="Search" />
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" title="Notifications"><i class="fa-regular fa-bell"></i></button>
+        <div class="avatar" title="Profile">KD</div>
+      </div>
+    </div>
+  </header>
+
+  <section class="page-body">
+    <div class="page-section">
+      <div class="container">
+        <div class="content-group">
+
+          <div class="dashboard-header">
+            <div class="text-block">
+              <div class="heading"><h2 class="h2">Dashboard</h2></div>
+              <div id="titleActions" class="button-set">
+                <!-- Edit button (non-edit mode) -->
+                <button id="btnEdit" class="btn btn-secondary" style="display:none">
+                  <i class="fa-solid fa-pencil"></i>
+                  <span class="button-label">Edit</span>
+                </button>
+                <!-- Save button (edit mode) -->
+                <button id="btnSave" class="btn btn-primary" style="display:none">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span class="button-label">Save</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="dashboard" class="content-group">
+            <div id="empty" class="empty-state">
+              <h4 class="h4">Your dashboard is empty</h4>
+              <p class="body-02">Click <strong>Add widgets</strong> to pick from the library and drop them onto the grid.</p>
+              <div class="button-set"><button id="btnAddFromEmpty" class="btn btn-secondary"><span class="button-label">Add widgets</span></button></div>
+            </div>
+            <div id="grid" style="display:none">
+              <div class="grid-bg"></div>
+              <div class="grid-lines"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Side panel ===== -->
+  <aside id="panel" class="widget-panel dock-right" aria-label="Widget library">
+    <div class="widget-panel-header">
+      <h3 class="h5">Add widgets</h3>
+      <div class="button-set dock-controls" id="dockControls" role="toolbar" aria-label="Dock panel">
+        <button class="btn btn-ghost dock-btn" data-dock="left" title="Dock left"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="btn btn-ghost dock-btn active" data-dock="right" title="Dock right"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+      <div class="button-set">
+        <button id="btnCollapsePanel" class="btn btn-ghost" title="Hide"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </div>
+    <div class="widget-panel-body">
+      <div class="tabs">
+        <div class="tab-items">
+          <nav class="nav nav-underline" id="panelTabs" role="tablist">
+            <a class="nav-link" href="#panel-sanctions" role="tab">Sanctions</a>
+            <a class="nav-link" href="#panel-tasks" role="tab">Tasks</a>
+            <a class="nav-link" href="#panel-performance" role="tab">Performance</a>
+          </nav>
+        </div>
+        <div class="tab-content">
+          <!-- SANCTIONS -->
+          <div class="tab-pane active" id="panel-sanctions">
+            <div class="template-list">
+              <!-- XS -->
+              <div class="widget-template preview-xs" draggable="true" data-key="sanctions_xs" data-size="XS">
+                <div class="preview-labels"><span class="label-chip">XS</span><span class="label-chip">1×1</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body card-sm">
+                      <header><h4 class="title-01">5 Sanctions</h4><p class="body-01">for reivew</p></header>
+                      <div class="icon-block icon-block-xl expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- S -->
+              <div class="widget-template preview-s" draggable="true" data-key="sanctions_s" data-size="S">
+                <div class="preview-labels"><span class="label-chip">S</span><span class="label-chip">2×1</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body card-sm">
+                      <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div><header><h4 class="title-01">5 Sanctions pending</h4><p class="body-01">for reivew</p></header></div>
+                      <div class="grid key-value-grid w-100">
+                        <div class="key-value key-value-item key-value-stacked"><span class="key">Flagged </span><span class="value">16</span></div>
+                        <div class="key-value key-value-item key-value-stacked"><span class="key">Overridden</span><span class="value">2</span></div>
+                        <div class="key-value key-value-item key-value-stacked"><span class="key">Errors</span><span class="value">7</span></div>
+                      </div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- M -->
+              <div class="widget-template preview-m" draggable="true" data-key="sanctions_m" data-size="M">
+                <div class="preview-labels"><span class="label-chip">M</span><span class="label-chip">2×2</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body">
+                      <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div><header><h4 class="title-01">5 Sanctions</h4><p class="body-01">For review</p></header></div>
+                      <div id="sanctions-list" class="list-unstyled justify-content-between w-100">
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Isabella Nguyen</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Sofia Patel</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Liam Smith</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Owen Davies</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Mia Thompson</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                      </div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- L -->
+              <div class="widget-template preview-l" draggable="true" data-key="sanctions_l" data-size="L">
+                <div class="preview-labels"><span class="label-chip">L</span><span class="label-chip">3×3</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body">
+                      <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div><header><h4 class="title-01">5 Sanctions</h4><p class="body-01">For review</p></header></div>
+                      <div id="sanctions-list" class="list-unstyled justify-content-between w-100">
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Isabella Nguyen</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Sofia Patel</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Liam Smith</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Owen Davies</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Mia Thompson</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                      </div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content">
+          <!-- PERFORMANCE -->
+          <div class="tab-pane active" id="panel-performance">
+            <div class="template-list">
+              <!-- XS -->
+              <div class="widget-template preview-xs" draggable="true" data-key="performance_xs-gp" data-size="XS">
+                <div class="preview-labels"><span class="label-chip">XS</span><span class="label-chip">1×1</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body card-sm">
+                      <header><h4 class="title-01">£124k</h4><p class="body-01">Gross Premium</p></header>
+                      <div class="icon-block icon-block-xl expressive-dark expressive-primary"><i class="fa-solid fa-sterling-sign"></i></div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+                         <!-- XS -->
+              <div class="widget-template preview-xs" draggable="true" data-key="performance_xs-com" data-size="XS">
+                <div class="preview-labels"><span class="label-chip">XS</span><span class="label-chip">1×1</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body card-sm">
+                      <header><h4 class="title-02">£6,268.00</h4><p class="body-01">Commission</p></header>
+                      <div class="icon-block icon-block-xl expressive-dark expressive-primary"><i class="fa-solid fa-sterling-sign"></i></div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- S -->
+              <div class="widget-template preview-s" draggable="true" data-key="performance_s" data-size="S">
+                <div class="preview-labels"><span class="label-chip">S</span><span class="label-chip">2×1</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body card-sm">
+                      <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-primary"><i class="fa-solid fa-sterling-sign"></i></div><header><h4 class="title-01">£124k</h4><p class="body-01">Gross Premium</p></header></div>
+                      <div class="grid key-value-grid w-100">
+                        <div class="key-value key-value-item key-value-stacked"><span class="key">Net Premium </span><span class="value">£118k</span></div>
+                        <div class="key-value key-value-item key-value-stacked"><span class="key">Commission</span><span class="value">£6,2k</span></div>
+                        <div class="key-value key-value-item key-value-stacked"><span class="key">Admin Fee</span><span class="value">£14,6k</span></div>
+                      </div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- M -->
+              <div class="widget-template preview-m" draggable="true" data-key="performance_m" data-size="M">
+                <div class="preview-labels"><span class="label-chip">M</span><span class="label-chip">2×2</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body">
+                      <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-primary"><i class="fa-solid fa-sterling-sign"></i></div><header><h4 class="title-01">£6,268.00</h4><p class="body-01">Commission</p></header></div>
+                      <div id="sanctions-list" class="list-unstyled justify-content-between w-100">
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Krypton</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">£3,120.00</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-caret-up"></i></div></div></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Bicy</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">£1,120.00</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-caret-up"></i></div></div></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Supercover</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">£123.00</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-caret-up"></i></div></div></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Tungsten</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">£99.00</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-caret-down"></i></div></div></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Tricycles</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">£20.00</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-caret-down"></i></div></div></div></div>
+                      </div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- L -->
+              <div class="widget-template preview-l" draggable="true" data-key="sanctions_l" data-size="L">
+                <div class="preview-labels"><span class="label-chip">L</span><span class="label-chip">3×3</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body">
+                      <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div><header><h4 class="title-01">5 Sanctions</h4><p class="body-01">For review</p></header></div>
+                      <div id="sanctions-list" class="list-unstyled justify-content-between w-100">
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="body-01 text-truncate">Isabella Nguyen</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="body-01 text-truncate">Sofia Patel</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="body-01 text-truncate">Liam Smith</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="body-01 text-truncate">Owen Davies</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                        <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="body-01 text-truncate">Mia Thompson</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                      </div>
+                    </article></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TASKS -->
+          <div class="tab-pane" id="panel-tasks">
+            <div class="template-list">
+              <!-- XS -->
+              <div class="widget-template preview-xs" draggable="true" data-key="tasks_xs" data-size="XS">
+                <div class="preview-labels"><span class="label-chip">XS</span><span class="label-chip">1×1</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body card-sm"><header><h4 class="title-01">25 tasks</h4><p class="body-01">Assigned to you</p></header><div class="icon-block icon-block-xl expressive-dark expressive-secondary"><i class="fa-solid fa-list-check"></i></div></article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- S -->
+              <div class="widget-template preview-s" draggable="true" data-key="tasks_s" data-size="S">
+                <div class="preview-labels"><span class="label-chip">S</span><span class="label-chip">2×1</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body card-sm"><div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-secondary"><i class="fa-solid fa-list-check"></i></div><header><h4 class="title-01">25 tasks</h4><p class="body-01">Assigned to you</p></header></div><div class="grid key-value-grid w-100"><div class="key-value key-value-item key-value-stacked"><span class="key">Ready </span><span class="value">16</span></div><div class="key-value key-value-item key-value-stacked"><span class="key">Ongoing</span><span class="value">2</span></div><div class="key-value key-value-item key-value-stacked"><span class="key">Review</span><span class="value">7</span></div></div></article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- M -->
+              <div class="widget-template preview-m" draggable="true" data-key="tasks_m" data-size="M">
+                <div class="preview-labels"><span class="label-chip">M</span><span class="label-chip">2×2</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body"><div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-secondary"><i class="fa-solid fa-list-check"></i></div><header><h4 class="title-01">25 tasks</h4><p class="body-01">Assigned to you</p></header></div><div id="tasks-list" class="list-unstyled justify-content-between w-100"><div class="align-items-baseline key-value"><icon class="icon fa-solid fa-chevron-down"></icon><h4 class="title-01"> To do </h4><div class="tag tag-status tag-status-info"><span class="tag-label">5 </span></div></div><div id="task1" class="align-items-baseline border-top d-flex justify-content-between list-item py-2"><div class="text-truncate align-middle"><input type="checkbox" class="form-check-input" id="taskcomplete1"><label class="body-01" for="taskcomplete1"> Claim Added - WOOLF Emailed to Kinetic</label></div></div><div id="task2" class="align-items-baseline border-top d-flex justify-content-between list-item py-2"><div><input type="checkbox" class="form-check-input" id="taskcomplete2"><label class="body-01 text-truncate" for="taskcomplete2"> Telephone Call Subs - Quote</label></div></div><div id="task3" class="border-top d-flex justify-content-between list-item py-2"><div><input type="checkbox" class="form-check-input" id="taskcomplete3"><label class="body-01 text-truncate" for="taskcomplete3"> Audit Printed</label></div></div><div id="task4" class="border-top d-flex justify-content-between list-item py-2"><div><input type="checkbox" class="form-check-input" id="taskcomplete4"><label class="body-01" for="taskcomplete4"> Agreed Value</label></div></div><div id="task5" class="border-top d-flex justify-content-between list-item py-2"><div><input type="checkbox" class="form-check-input" id="taskcomplete5"><label class="body-01" for="taskcomplete5"> Telephone Call Subs - Quote</label></div></div></div></article></div>
+                  </div>
+                </div>
+              </div>
+              <!-- L -->
+              <div class="widget-template preview-l" draggable="true" data-key="tasks_l" data-size="L">
+                <div class="preview-labels"><span class="label-chip">L</span><span class="label-chip">3×3</span></div>
+                <div class="preview-canvas">
+                  <div class="preview-content">
+                    <div class="card"><article class="card-body"><div class="d-flex flex-column gap-4 w-100"><div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-secondary"><i class="fa-solid fa-list-check"></i></div><header><h4 class="title-01">25 tasks</h4><p class="body-01">Assigned to you</p></header></div><div id="tasks-list" class="list-unstyled justify-content-between w-100"><div class="align-items-baseline key-value"><icon class="icon fa-solid fa-chevron-down"></icon><h4 class="title-01"> To do </h4><div class="tag tag-status tag-status-info"><span class="tag-label">5 </span></div></div><div id="task1" class="align-items-baseline border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete1l"><label class="body-01" for="taskcomplete1l"> Claim Added - WOOLF Emailed to Kinetic</label></div><div class="avatar avatar-xs">KD</div></div><div id="task2" class="align-items-baseline border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete2l"><label class="body-01" for="taskcomplete2l"> Telephone Call Subs - Quote</label></div><div class="avatar avatar-xs">KD</div></div><div id="task3" class="border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete3l"><label class="body-01" for="taskcomplete3l"> Audit Printed</label></div><div class="avatar avatar-xs">KD</div></div><div id="task4" class="border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete4l"><label class="body-01" for="taskcomplete4l"> Agreed Value</label></div><div class="avatar avatar-xs">KD</div></div><div id="task5" class="border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete5l"><label class="body-01" for="taskcomplete5l"> Telephone Call Subs - Quote</label></div><div class="avatar avatar-xs">KD</div></div></div></div></article></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Horizontal trigger (visible when panel hidden) -->
+  <button id="panelTrigger" class="panel-trigger" title="Open widget panel"><i class="fa-solid fa-layer-group"></i><span class="label">Widgets</span></button>
+
+  <div id="toasts" class="toast-container" aria-live="polite"></div>
+
+  <script>
+    // ===== Grid constants =====
+    const CELL_SIZE = 160; const GAP = 24; const GRID_COLS = 7; const GRID_ROWS = 4;
+
+    // ===== State =====
+    let editMode = false; const placed = []; let draggedIndex = null; let previewSize = null;
+    // pointer-based drag state for "drag anywhere"
+    let pointerDrag = { active:false, started:false, pointerId:null, idx:null, el:null };
+
+    const grid = document.getElementById('grid'); const emptyState = document.getElementById('empty'); const panel = document.getElementById('panel'); const trigger = document.getElementById('panelTrigger');
+    const btnEdit = document.getElementById('btnEdit'); const btnSave = document.getElementById('btnSave');
+    const btnAddFromEmpty = document.getElementById('btnAddFromEmpty'); const btnCollapsePanel = document.getElementById('btnCollapsePanel');
+
+    function sizeGrid(){ const w = GRID_COLS * (CELL_SIZE + GAP) - GAP; const h = GRID_ROWS * (CELL_SIZE + GAP) - GAP; grid.style.width = w + 'px'; grid.style.height = h + 'px'; }
+    sizeGrid();
+
+    // ===== Panel tabs =====
+    (function(){ const tabsNav = document.getElementById('panelTabs'); const panes = document.querySelectorAll('.tab-content .tab-pane'); tabsNav.querySelectorAll('.nav-link')[0].classList.add('active'); panes[0].classList.add('active'); tabsNav.addEventListener('click', (e)=>{ const link = e.target.closest('.nav-link'); if(!link) return; e.preventDefault(); tabsNav.querySelectorAll('.nav-link').forEach(a=>a.classList.remove('active')); link.classList.add('active'); const id = link.getAttribute('href').substring(1); panes.forEach(p=>p.classList.toggle('active', p.id===id)); }); })();
+
+    // ===== Panel open/close/collapse =====
+    function openPanel(){ if(!editMode) return; panel.classList.add('open'); panel.classList.remove('collapsed'); trigger.classList.add('hidden'); }
+    function closePanel(){ panel.classList.remove('open'); panel.classList.add('collapsed'); // trigger visible only in edit mode
+      trigger.classList.toggle('hidden', !editMode);
+    }
+    btnCollapsePanel.addEventListener('click', ()=>{
+      if(panel.classList.contains('open')){ closePanel(); } else { openPanel(); }
+      updateCollapseIcon();
+    });
+    trigger.addEventListener('click', ()=> openPanel());
+
+    // ===== Edit flow (Edit next to title, Save replaces it in edit mode) =====
+    function beginEdit(){ setEdit(true); emptyState.style.display='none'; grid.style.display=''; openPanel(); }
+    function setEdit(flag){
+      editMode = !!flag;
+      document.body.classList.toggle('is-edit', editMode);
+      btnSave.style.display = editMode ? 'inline-flex' : 'none';
+      btnEdit.style.display = (!editMode && hasWidgets()) ? 'inline-flex' : 'none';
+      updateHeaderButtons();
+      renderPlaced();
+      // panel/trigger should exist only in edit mode
+      if(editMode){
+        // ensure trigger is visible when collapsed
+        trigger.classList.toggle('hidden', panel.classList.contains('open'));
+      } else {
+        // abort any active pointer drag, hide panel and trigger
+        if(pointerDrag.active){
+          pointerDrag.active = false; pointerDrag.started = false; pointerDrag.idx = null;
+          if(dragGhostEl){ dragGhostEl.remove(); dragGhostEl = null; } hidePreview();
+        }
+        closePanel();
+        trigger.classList.add('hidden');
+      }
+    }
+    function hasWidgets(){ return placed.length > 0; }
+
+    // Header buttons visibility when not editing
+    function updateHeaderButtons(){ if(!editMode){ if(!hasWidgets()){ grid.style.display='none'; emptyState.style.display=''; } else { emptyState.style.display='none'; grid.style.display=''; } } }
+
+    btnAddFromEmpty.addEventListener('click', beginEdit);
+    btnEdit.addEventListener('click', beginEdit);
+    btnSave.addEventListener('click', ()=>{ setEdit(false); closePanel(); showSavedToast(); updateHeaderButtons(); });
+
+    // ===== DnD helpers =====
+    const sizeMap = { XS:{w:1,h:1,label:'XS'}, S:{w:2,h:1,label:'S'}, M:{w:2,h:2,label:'M'}, L:{w:3,h:3,label:'L'} };
+    function mapSize(raw){ const key = (raw||'XS').toUpperCase().trim(); return sizeMap[key] || sizeMap.XS; }
+    function inferLabel(p){ if(p.w===1&&p.h===1) return 'XS'; if(p.w===2&&p.h===1) return 'S'; if(p.w===2&&p.h===2) return 'M'; if(p.w===3&&p.h===3) return 'L'; return 'XS'; }
+
+    function canPlace(col,row,w,h){ if(col<0||row<0||col+w>GRID_COLS||row+h>GRID_ROWS) return false; return !placed.some(p=> col < p.col+p.w && col+w > p.col && row < p.row+p.h && row+h > p.row); }
+    function canPlaceExcluding(col,row,w,h,exclude){ if(col<0||row<0||col+w>GRID_COLS||row+h>GRID_ROWS) return false; return !placed.some((p,i)=>{ if(i===exclude) return false; return col < p.col+p.w && col+w > p.col && row < p.row+p.h && row+h > p.row; }); }
+
+    function showPreview(col,row,w,h,valid){ hidePreview(); const pr=document.createElement('div'); pr.id='dropPreview'; pr.className='drop-preview'+(valid?'':' invalid'); pr.style.width=(w*CELL_SIZE+(w-1)*GAP)+'px'; pr.style.height=(h*CELL_SIZE+(h-1)*GAP)+'px'; pr.style.left=(col*(CELL_SIZE+GAP))+'px'; pr.style.top=(row*(CELL_SIZE+GAP))+'px'; grid.appendChild(pr); }
+    function hidePreview(){ const pr=document.getElementById('dropPreview'); if(pr) pr.remove(); }
+
+    // constant drag ghost
+    let dragGhostEl = null;
+
+    // Drag FROM panel templates
+    document.querySelectorAll('.widget-template').forEach(tpl=>{
+      tpl.addEventListener('dragstart',(e)=>{ const m = mapSize(tpl.dataset.size); previewSize = m; e.dataTransfer.setData('text/plain', tpl.dataset.key); e.dataTransfer.effectAllowed='copy'; const card = tpl.querySelector('.card'); dragGhostEl = card.cloneNode(true); dragGhostEl.className='drag-ghost'; dragGhostEl.style.transform='scale(.85)'; document.body.appendChild(dragGhostEl); try{ e.dataTransfer.setDragImage(dragGhostEl, 24, 24); }catch(err){} });
+      tpl.addEventListener('dragend',()=>{ previewSize=null; hidePreview(); if(dragGhostEl){ dragGhostEl.remove(); dragGhostEl=null; } });
+    });
+
+    // Drag existing widget (drag anywhere on widget while in edit mode)
+    function attachDragHandlers(idx, el){
+      // allow HTML5 drag when editMode is on
+      el.draggable = !!editMode;
+
+      // Pointer-based drag-anywhere (mousedown -> move -> release)
+      el.addEventListener('pointerdown', (e)=>{
+        if(!editMode || e.button !== 0) return;
+        e.preventDefault();
+        el.setPointerCapture && el.setPointerCapture(e.pointerId);
+        pointerDrag.active = true;
+        pointerDrag.pointerId = e.pointerId;
+        pointerDrag.idx = idx;
+        pointerDrag.el = el;
+        pointerDrag.startX = e.clientX;
+        pointerDrag.startY = e.clientY;
+        pointerDrag.started = false;
+
+        // store element/grid positions to help align ghost to preview
+        pointerDrag.elRect = el.getBoundingClientRect();
+
+        const onMove = (ev) => {
+          if(!pointerDrag.active) return;
+          const dx = ev.clientX - pointerDrag.startX;
+          const dy = ev.clientY - pointerDrag.startY;
+          if(!pointerDrag.started && Math.hypot(dx,dy) > 4){
+            // begin drag
+            pointerDrag.started = true;
+            draggedIndex = idx;
+            el.classList.add('dragging');
+            const p = placed[idx];
+            dragGhostEl = el.cloneNode(true);
+            dragGhostEl.className = 'drag-ghost';
+            dragGhostEl.style.transform = 'scale(.9)';
+            // make the ghost visible and sized like the cell so it lines up with preview
+            dragGhostEl.style.position = 'fixed';
+            dragGhostEl.style.zIndex = 9999;
+            dragGhostEl.style.pointerEvents = 'none';
+            const gw = p.w*CELL_SIZE + (p.w-1)*GAP;
+            const gh = p.h*CELL_SIZE + (p.h-1)*GAP;
+            dragGhostEl.style.width = gw + 'px';
+            dragGhostEl.style.height = gh + 'px';
+            document.body.appendChild(dragGhostEl);
+            // position once immediately (will be updated onMove)
+            const gridRect = grid.getBoundingClientRect();
+            const col = Math.max(0, Math.min(Math.floor((ev.clientX - gridRect.left)/(CELL_SIZE+GAP)), GRID_COLS-1));
+            const row = Math.max(0, Math.min(Math.floor((ev.clientY - gridRect.top)/(CELL_SIZE+GAP)), GRID_ROWS-1));
+            dragGhostEl.style.left = (gridRect.left + col*(CELL_SIZE+GAP)) + 'px';
+            dragGhostEl.style.top  = (gridRect.top  + row*(CELL_SIZE+GAP)) + 'px';
+            showPreview(p.col,p.row,p.w,p.h,true);
+          }
+          if(pointerDrag.started){
+            const rect = grid.getBoundingClientRect();
+            const x = ev.clientX - rect.left;
+            const y = ev.clientY - rect.top;
+            const col = Math.max(0, Math.min(Math.floor(x/(CELL_SIZE+GAP)), GRID_COLS-1));
+            const row = Math.max(0, Math.min(Math.floor(y/(CELL_SIZE+GAP)), GRID_ROWS-1));
+            const p = placed[idx];
+            const valid = canPlaceExcluding(col,row,p.w,p.h,idx);
+            showPreview(col,row,p.w,p.h,valid);
+            // keep the ghost aligned with the preview so they move together
+            if(dragGhostEl){
+              dragGhostEl.style.left = (rect.left + col*(CELL_SIZE+GAP)) + 'px';
+              dragGhostEl.style.top  = (rect.top  + row*(CELL_SIZE+GAP)) + 'px';
+            }
+          }
+        };
+
+        const onUp = (ev) => {
+          if(!pointerDrag.active) return;
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          try{ el.releasePointerCapture && el.releasePointerCapture(pointerDrag.pointerId); }catch(e){}
+          if(pointerDrag.started){
+            const rect = grid.getBoundingClientRect();
+            const x = ev.clientX - rect.left;
+            const y = ev.clientY - rect.top;
+            const col = Math.max(0, Math.min(Math.floor(x/(CELL_SIZE+GAP)), GRID_COLS-1));
+            const row = Math.max(0, Math.min(Math.floor(y/(CELL_SIZE+GAP)), GRID_ROWS-1));
+            const p = placed[idx];
+            if(canPlaceExcluding(col,row,p.w,p.h,idx)){
+              p.col = col; p.row = row; renderPlaced();
+            } else {
+              showReject(col,row,p.w,p.h,null);
+              renderPlaced();
+            }
+          }
+          // cleanup
+          draggedIndex = null;
+          pointerDrag.active = false;
+          pointerDrag.started = false;
+          pointerDrag.idx = null;
+          if(dragGhostEl){ dragGhostEl.remove(); dragGhostEl = null; }
+          hidePreview();
+        };
+
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+      });
+
+      // keep HTML5 drag as a fallback for users that expect it
+      el.addEventListener('dragstart',(e)=>{
+        if(!editMode){ e.preventDefault(); return; }
+        draggedIndex=idx; const p=placed[idx]; showPreview(p.col,p.row,p.w,p.h,true); el.classList.add('dragging');
+        e.dataTransfer.setData('text/plain','existing'); e.dataTransfer.effectAllowed='move';
+        dragGhostEl = el.cloneNode(true); dragGhostEl.classList.add('drag-ghost'); dragGhostEl.style.transform='scale(.9)'; document.body.appendChild(dragGhostEl);
+        try{ e.dataTransfer.setDragImage(dragGhostEl, 28, 28);}catch(err){}
+      });
+      el.addEventListener('dragend',()=>{
+        draggedIndex=null; el.classList.remove('dragging'); hidePreview(); if(dragGhostEl){ dragGhostEl.remove(); dragGhostEl=null; }
+      });
+    }
+
+    grid.addEventListener('dragenter', (e)=>{ e.preventDefault(); });
+    grid.addEventListener('dragover',(e)=>{ e.preventDefault(); const rect=grid.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const col=Math.floor(x/(CELL_SIZE+GAP)); const row=Math.floor(y/(CELL_SIZE+GAP)); e.dataTransfer.dropEffect = (draggedIndex!==null)? 'move' : 'copy'; if(draggedIndex!==null){ const p=placed[draggedIndex]; const valid=canPlaceExcluding(col,row,p.w,p.h,draggedIndex); showPreview(col,row,p.w,p.h,valid); } else if(previewSize){ const valid=canPlace(col,row,previewSize.w,previewSize.h); showPreview(col,row,previewSize.w,previewSize.h,valid); } });
+    grid.addEventListener('dragleave',()=>{ hidePreview(); });
+
+    function showReject(col,row,w,h,tpl){ const ghost=document.createElement('div'); ghost.className='reject-ghost'; ghost.style.width=(w*CELL_SIZE+(w-1)*GAP)+'px'; ghost.style.height=(h*CELL_SIZE+(h-1)*GAP)+'px'; ghost.style.left=(col*(CELL_SIZE+GAP))+'px'; ghost.style.top=(row*(CELL_SIZE+GAP))+'px'; grid.appendChild(ghost); setTimeout(()=>{ ghost.remove(); }, 650); if(tpl){ openPanel(); tpl.classList.add('pulse'); tpl.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=> tpl.classList.remove('pulse'), 2000); } }
+
+    grid.addEventListener('drop',(e)=>{ e.preventDefault(); hidePreview(); const rect=grid.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const col=Math.max(0,Math.min(Math.floor(x/(CELL_SIZE+GAP)),GRID_COLS-1)); const row=Math.max(0,Math.min(Math.floor(y/(CELL_SIZE+GAP)),GRID_ROWS-1)); const data=e.dataTransfer.getData('text/plain'); if(draggedIndex!==null){ const p=placed[draggedIndex]; if(canPlaceExcluding(col,row,p.w,p.h,draggedIndex)){ p.col=col; p.row=row; renderPlaced(); } else { showReject(col,row,p.w,p.h,null); } draggedIndex=null; return; } if(!data) return; const tpl=document.querySelector(`.widget-template[data-key="${data}"]`); if(!tpl) return; const m=mapSize(tpl.dataset.size); const html=tpl.querySelector('.card').outerHTML; if(canPlace(col,row,m.w,m.h)){ placed.push({col,row,w:m.w,h:m.h,size:m.label,html,id:`${data}-${Date.now()}`}); renderPlaced(); } else { showReject(col,row,m.w,m.h,tpl); } });
+
+    // ===== Render placed =====
+    function renderPlaced(){ emptyState.style.display='none'; grid.style.display=''; grid.innerHTML='<div class="grid-bg"></div><div class="grid-lines"></div>'; placed.forEach((p,idx)=>{ const el=document.createElement('div'); el.className='placed'; const label = p.size || inferLabel(p); el.classList.add('size-' + label.toLowerCase()); el.style.width=(p.w*CELL_SIZE+(p.w-1)*GAP)+'px'; el.style.height=(p.h*CELL_SIZE+(p.h-1)*GAP)+'px'; el.style.left=(p.col*(CELL_SIZE+GAP))+'px'; el.style.top=(p.row*(CELL_SIZE+GAP))+'px'; el.innerHTML = p.html + `<div class="widget-controls"><button class="control-trash btn btn-ghost btn-sm" data-del aria-label="Delete"><i class="fa-solid fa-trash"></i></button></div>`; grid.appendChild(el); attachDragHandlers(idx, el); const del = el.querySelector('[data-del]'); if (del) {
+			// Prevent the delete button from starting a pointer-drag on the parent
+			del.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); });
+			del.addEventListener('pointerup',   (ev) => { ev.stopPropagation(); });
+			// Actual delete action (also stop propagation)
+			del.addEventListener('click', (ev) => { ev.stopPropagation(); placed.splice(idx,1); renderPlaced(); afterRender(); });
+		}
+	});
+	 afterRender(); persist(); }
+
+    function afterRender(){ btnEdit.style.display = (!editMode && hasWidgets()) ? 'inline-flex' : 'none'; }
+
+    // ===== Toast =====
+    function showSavedToast(){ const host=document.getElementById('toasts'); const t=document.createElement('div'); t.className='toast toast-success show'; t.innerHTML='<div class="toast-content"><div class="toast-icon"><i class="fa fa-check"></i></div><div class="toast-body"><div class="toast-message"><strong>Layout saved</strong></div></div></div>'; host.appendChild(t); setTimeout(()=>{ t.classList.remove('show'); t.remove(); },2500); }
+
+    // ===== Restore/Persist =====
+    (function restore(){ const raw=localStorage.getItem('dashboard:grid:v5.9'); if(!raw){ updateHeaderButtons(); btnEdit.style.display = hasWidgets()? 'inline-flex' : 'none'; trigger.classList.remove('hidden'); return; } try{ const arr=JSON.parse(raw)||[]; arr.forEach(p=> placed.push(p)); renderPlaced(); }catch(e){ updateHeaderButtons(); } })();
+    function persist(){ localStorage.setItem('dashboard:grid:v5.9', JSON.stringify(placed)); }
+
+    // Docking: persistence key + helpers
+    const DOCK_KEY = 'dashboard:panel:dock:v5.9';
+    function applyDock(d){
+      const dock = (d || 'right');
+      panel.classList.remove('dock-left','dock-right');
+      panel.classList.add('dock-' + dock);
+      trigger.classList.toggle('dock-left', dock === 'left');
+      trigger.classList.toggle('dock-right', dock === 'right');
+      document.querySelectorAll('.dock-btn').forEach(b=> b.classList.toggle('active', b.dataset.dock === dock));
+      updateCollapseIcon();
+    }
+    function setDock(d){
+      localStorage.setItem(DOCK_KEY, d);
+      applyDock(d);
+    }
+    function updateCollapseIcon(){
+      const ic = btnCollapsePanel.querySelector('i');
+      if(!ic) return;
+      if(panel.classList.contains('dock-left')) ic.className = panel.classList.contains('open') ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-right';
+      else ic.className = panel.classList.contains('open') ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-left';
+    }
+
+    // dock control handler
+    document.getElementById('dockControls').addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-dock]');
+      if(!btn) return;
+      setDock(btn.dataset.dock);
+    });
+
+    // Init
+    // apply saved dock (default right)
+    applyDock(localStorage.getItem(DOCK_KEY) || 'right');
+    updateHeaderButtons();
+    // trigger and panel should be hidden by default unless editing
+    trigger.classList.toggle('hidden', !editMode);
+    btnEdit.style.display = hasWidgets()? 'inline-flex' : 'none';
+  </script>
+</body>
+</html>

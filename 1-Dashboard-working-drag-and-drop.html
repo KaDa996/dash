@@ -1,0 +1,828 @@
+
+<!DOCTYPE html><html lang="en"><head>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&amp;display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="compiled.css">
+  <script src="https://kit.fontawesome.com/4d37119cf7.js" crossorigin="anonymous"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://use.typekit.net/alw3iql.css">
+  <title>Dashboard Preview</title>
+  <style>
+
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      font-optical-sizing: auto;
+      font-weight: 300;
+      font-style: normal;
+      background-color: #F7F7F7;
+      font-family: "Proxima Soft", Helvetica, Arial, sans-serif;
+
+    }
+
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0px 24px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .container {
+      display: flex;
+      margin-top: 16px;
+    }
+
+    .panel {
+      width: 0;
+      overflow: hidden;
+      transition: width 0.3s;
+      background: #f9f9f9;
+      border-right: 1px solid #ddd;
+    }
+
+    .panel.open {
+      width: 280px;
+    }
+
+    .widget-list {
+      padding: 8px;
+    }
+
+    .widget-item {
+      cursor: grab;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .widget-item:hover {
+      background: #f0f0f0;
+    }
+
+    .widget-item:active {
+      cursor: grabbing;
+    }
+
+    .widget-item img {
+      width: 96px;
+      height: 96px;
+      background: #ddd;
+      border-radius: 8px;
+    }
+
+    .grid {
+      position: relative;
+      width: calc(7 * 160px + 6 * 24px);
+      height: calc(4 * 160px + 3 * 24px);
+      margin-left: 24px;
+      margin-top: 32px;
+      background: #F7F7F7;
+      border: 0px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .placed {
+      position: absolute;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 0px solid #999;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: box-shadow 0.2s;
+    }
+
+    .placed.draggable {
+      cursor: move;
+    }
+
+    .placed.dragging {
+      opacity: 0.5;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .placed img {
+      width: 102.5%;
+      height: 102.5%;
+      object-fit: cover;
+    }
+
+    .placed-content {
+      padding: 0px;
+      text-align: center;
+      border-radius: 16px;
+      border:none;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      line-height: 1;
+      z-index: 10;
+    }
+
+    .placed.draggable .remove-btn {
+      display: flex;
+    }
+
+    .remove-btn:hover {
+      background: #d32f2f;
+    }
+
+    .drop-preview {
+      position: absolute;
+      border: 3px dashed #2196F3;
+      background: rgba(33, 150, 243, 0.1);
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .drop-preview.invalid {
+      border-color: #f44336;
+      background: rgba(244, 67, 54, 0.1);
+    }
+
+    .push-options {
+      position: absolute;
+      background: white;
+      border: 2px solid #2196F3;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 100;
+      min-width: 200px;
+    }
+
+    .push-options h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .push-options button {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin: 4px 0;
+      background: #0F40C5;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .push-options button:hover {
+      background: #3F66D1;
+    }
+
+    .push-options button.cancel {
+      background: #9E9E9E;
+    }
+
+    .push-options button.cancel:hover {
+      background: #757575;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="dashboard-header">
+    <h1>Dashboard</h1>
+    <button type="button" class="btn btn-primary" onclick="toggleEdit()">
+    <span class="editBtnText">Edit</span>
+</button>
+
+  </header>
+
+  <div class="container">
+    <aside class="panel" id="panel">
+      <div class="tabs">
+        <button data-tab="Activity">Activity</button>
+        <button data-tab="Performance">Performance</button>
+        <button data-tab="Transactions">Policy Status</button>
+        <button data-tab="Renewals">Renewals</button>
+        <button data-tab="Sanctions">Sanctions</button>
+        <button data-tab="Tasks">Tasks</button>
+      </div>
+
+      <div class="widget-list" id="widgetList"></div>
+    </aside>
+
+    <main class="grid" id="grid">   </main>
+  </div>
+
+  <script>
+    const CELL_SIZE = 160;
+    const GAP = 24;
+    const GRID_COLS = 7;
+    const GRID_ROWS = 4;
+
+    let editMode = false;
+    let placed = [];
+    let draggedWidget = null;
+    let previewWidget = null;
+    let pendingPlacement = null;
+    let activeTab = 'Activity';
+
+    function getActiveWidgets() {
+  return widgetCategories[activeTab] || [];
+}
+
+    const widgetCategories = {
+      'Activity': [
+        { id: 'act-l', title: 'Activity Large', size: 'L', img: 'Activity-L.png' },
+        { id: 'act-m', title: 'Activity Medium', size: 'M', img: 'Activity-M.png' },
+        { id: 'act-xs', title: 'Activity XSmall', size: 'XS', img: 'Activity-XS.png' }
+      ],
+      'Performance': [
+        { id: 'perf-xs', title: 'Performance', size: 'XS', img: 'Performance-XS.png' },
+        { id: 'perf-xs2', title: 'New Clients', size: 'XS', img: 'Performance-XS2.png' },
+        { id: 'perf-xs3', title: 'New Policies', size: 'XS', img: 'Performance-XS3.png' },
+        { id: 'perf-s', title: 'Performance Small', size: 'S', img: 'Performance-S.png' },
+        { id: 'perf-m', title: 'Performance Medium', size: 'M', img: 'Performance-M.png' },
+        { id: 'rc-l', title: 'Recent Clients L', size: 'L', img: 'Recent Clients L.png' },
+        { id: 'rc-m', title: 'Recent Clients M', size: 'M', img: 'Recent Clients M.png' },
+        { id: 'prod-m1', title: 'Top Brands M', size: 'M', img: 'Top brands by commission M.png' },
+        { id: 'prod-m2', title: 'Best Selling M', size: 'M', img: 'Top Products M.png' }
+      ],
+      'Transactions': [
+        {id: 'trans-M', title: "Transactions M", size: 'M', img:'Transactions M.png' },
+        {id: 'trans-NBS', title: "Transactions NB S", size: 'S', img:'Transactions NB S.png' },
+        {id: 'trans-RENS', title: "Transactions REN S", size: 'S', img:'Transactions REN S.png' },
+        {id: 'trans-XS', title: "Transactions XS", size: 'XS', img:'Transactions XS.png' },
+        { id: 'ps-cancel', title: 'Cancelations', size: 'XS', img: 'PS-XS - Cancelations.png' },
+        { id: 'ps-decline', title: 'Declines', size: 'XS', img: 'PS-XS - decline.png' },
+        { id: 'ps-incomplete', title: 'Incomplete', size: 'XS', img: 'PS-XS - incomplete.png' },
+        { id: 'ps-lapsed', title: 'Lapsed', size: 'XS', img: 'PS-XS - Lapsed.png' },
+        { id: 'ps-live', title: 'Live', size: 'XS', img: 'PS-XS - Live.png' },
+        { id: 'ps-mta', title: 'MTAs', size: 'XS', img: 'PS-XS - MTA.png' },
+        { id: 'ps-prospect', title: 'New Prospects', size: 'XS', img: 'PS-XS - Prospect.png' },
+        { id: 'ps-refer', title: 'Refers', size: 'XS', img: 'PS-XS - refer.png' },
+        { id: 'ps-ren', title: 'Renewals', size: 'XS', img: 'PS-XS - Ren.png' }
+        
+      ],
+      'Renewals': [
+        { id: 'ren1-l', title: 'Renewals List L', size: 'L', img: 'Renewals-1 L.png' },
+        { id: 'ren1-m', title: 'Renewals List M', size: 'M', img: 'Renewals-1 M.png' },
+        { id: 'ren1-s', title: 'Renewals Summary S', size: 'S', img: 'Renewals-1 S.png' },
+        { id: 'ren1-xs', title: 'Renewals Icon XS', size: 'XS', img: 'Renewals-1 XS.png' },
+        { id: 'ren2-m', title: 'Renewals Progress M', size: 'M', img: 'Renewals-2 M.png' },
+        { id: 'ren2-s', title: 'Renewals Stats S', size: 'S', img: 'Renewals-2 S.png' },
+        { id: 'ren2-xs', title: 'Renewals Invited XS', size: 'XS', img: 'Renewals-2 XS.png' },
+        { id: 'ren3-m', title: 'Renewals Chart M', size: 'M', img: 'Renewals-3 M.png' },
+        { id: 'ren3-xs', title: 'Invitations Sent XS', size: 'XS', img: 'Renewals-3 XS.png' },
+        { id: 'ren4-m', title: 'Renewals Trend M', size: 'M', img: 'Renewals-4 XS.png' }
+      ],
+      'Sanctions': [
+        { id: 'sanc-xs', title: 'Sanctions XS', size: 'XS', img: 'Sanctions XS.png' },
+        { id: 'sanc-s', title: 'Sanctions S', size: 'S', img: 'Sanctions S.png' },
+        { id: 'sanc-m', title: 'Sanctions M', size: 'M', img: 'Sanctions M.png' },
+        { id: 'sanc-l', title: 'Sanctions L', size: 'L', img: 'Sanctions L.png' }
+      ],
+      'Tasks': [
+        { id: 'tasks-xs', title: 'Tasks XS', size: 'XS', img: 'Tasks-XS.png' },
+        { id: 'tasks-s', title: 'Tasks S', size: 'S', img: 'Tasks-S.png' },
+        { id: 'tasks-m', title: 'Tasks M', size: 'M', img: 'Tasks-M.png' },
+        { id: 'tasks-l', title: 'Tasks L', size: 'L', img: 'Tasks-L.png' }
+      ],
+    };
+
+    const sizeMap = {
+      XS: { w: 1, h: 1 },
+      S: { w: 2, h: 1 },
+      M: { w: 2, h: 2 },
+      L: { w: 3, h: 3 },
+    };
+
+    function toggleEdit() {
+      editMode = !editMode;
+      const panel = document.getElementById('panel');
+      const btnText = document.getElementById('editBtnText');
+      
+      if (editMode) {
+        panel.classList.add('open');
+        btnText.textContent = 'Exit Edit';
+      } else {
+        panel.classList.remove('open');
+        btnText.textContent = 'Edit Dashboard';
+      }
+      
+      // Re-render grid to show/hide edit controls
+      renderGrid();
+    }
+    document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeTab = btn.dataset.tab;
+    renderWidgetList();
+  });
+});
+    function renderWidgetList() {
+      const list = document.getElementById('widgetList');
+      list.innerHTML = '';
+
+      const widgets = getActiveWidgets();
+
+      widgets.forEach(w => {
+        const item = document.createElement('div');
+        item.className = 'widget-item';
+        item.draggable = true;
+        item.innerHTML = `
+          <img src="${w.img}" alt="${w.title}">
+          <div class="widget-info">
+            <div class="title">${w.title}</div>
+            <div class="size">Size: ${w.size}</div>
+          </div>
+        `;
+        
+        item.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', w.id); // Use standard MIME type
+          previewWidget = w;
+          draggedWidget = null; // Make sure we're not dragging an existing widget
+          console.log('Started dragging new widget from panel:', w.id);
+        });
+
+        item.addEventListener('dragend', (e) => {
+          previewWidget = null;
+          hidePreview();
+          console.log('Ended dragging from panel');
+        });
+
+        list.appendChild(item);
+      });
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('grid');
+      const existingWidgets = grid.querySelectorAll('.placed');
+      existingWidgets.forEach(w => w.remove());
+
+      placed.forEach((p, index) => {
+        const widget = document.createElement('div');
+        widget.className = 'placed';
+        if (editMode) {
+          widget.classList.add('draggable');
+          widget.draggable = true;
+        }
+        widget.style.width = `${p.w * CELL_SIZE + (p.w - 1) * GAP}px`;
+        widget.style.height = `${p.h * CELL_SIZE + (p.h - 1) * GAP}px`;
+        widget.style.left = `${p.col * (CELL_SIZE + GAP)}px`;
+        widget.style.top = `${p.row * (CELL_SIZE + GAP)}px`;
+        widget.style.background = p.color;
+        widget.innerHTML = `
+          <button class="remove-btn" onclick="removeWidget(${index})">×</button>
+          <div class="placed-content">
+            <img src="${p.img}" alt="${p.title}">
+          </div>
+        `;
+        
+        if (editMode) {
+          widget.addEventListener('dragstart', (e) => {
+            draggedWidget = index;
+            widget.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'existing'); // Mark as existing widget
+            console.log('Started dragging existing widget:', index);
+          });
+
+          widget.addEventListener('dragend', (e) => {
+            widget.classList.remove('dragging');
+            console.log('Ended dragging widget');
+          });
+        }
+
+        grid.appendChild(widget);
+      });
+    }
+
+    function canPlace(col, row, w, h) {
+      // Check bounds first
+      if (col < 0 || row < 0 || col + w > GRID_COLS || row + h > GRID_ROWS) {
+        return false;
+      }
+
+      return !placed.some(p => 
+        col < p.col + p.w &&
+        col + w > p.col &&
+        row < p.row + p.h &&
+        row + h > p.row
+      );
+    }
+
+    function canPlaceExcluding(col, row, w, h, excludeIndex) {
+      // Check bounds first
+      if (col < 0 || row < 0 || col + w > GRID_COLS || row + h > GRID_ROWS) {
+        return false;
+      }
+
+      return !placed.some((p, i) => {
+        if (i === excludeIndex) return false;
+        return col < p.col + p.w &&
+          col + w > p.col &&
+          row < p.row + p.h &&
+          row + h > p.row;
+      });
+    }
+
+    function removeWidget(index) {
+      placed.splice(index, 1);
+      renderGrid();
+    }
+
+    function getConflictingWidgets(col, row, w, h, excludeIndex = -1) {
+      return placed.filter((p, i) => {
+        if (i === excludeIndex) return false;
+        return col < p.col + p.w &&
+          col + w > p.col &&
+          row < p.row + p.h &&
+          row + h > p.row;
+      });
+    }
+
+    function canPushWidgets(col, row, w, h, direction) {
+      const conflicts = getConflictingWidgets(col, row, w, h);
+      if (conflicts.length === 0) return true;
+
+      // Calculate how much to push
+      const pushAmount = direction === 'right' || direction === 'left' ? w : h;
+      
+      // Check if pushing would move widgets out of bounds
+      for (let conflict of conflicts) {
+        let newCol = conflict.col;
+        let newRow = conflict.row;
+
+        if (direction === 'right') newCol += pushAmount;
+        if (direction === 'left') newCol -= pushAmount;
+        if (direction === 'down') newRow += pushAmount;
+        if (direction === 'up') newRow -= pushAmount;
+
+        if (newCol < 0 || newCol + conflict.w > GRID_COLS ||
+            newRow < 0 || newRow + conflict.h > GRID_ROWS) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function pushWidgets(col, row, w, h, direction) {
+      const conflicts = getConflictingWidgets(col, row, w, h);
+      const pushAmount = direction === 'right' || direction === 'left' ? w : h;
+
+      conflicts.forEach(conflict => {
+        if (direction === 'right') conflict.col += pushAmount;
+        if (direction === 'left') conflict.col -= pushAmount;
+        if (direction === 'down') conflict.row += pushAmount;
+        if (direction === 'up') conflict.row -= pushAmount;
+      });
+    }
+
+    function placeWidget(widget, col, row) {
+      const size = sizeMap[widget.size];
+      
+      console.log('Attempting to place widget:', widget.title, 'at', col, row, 'size:', size);
+      
+      if (canPlace(col, row, size.w, size.h)) {
+        // Direct placement - no conflicts
+        const newWidget = {
+          ...widget,
+          col,
+          row,
+          w: size.w,
+          h: size.h,
+        };
+        placed.push(newWidget);
+        console.log('Widget placed successfully:', newWidget);
+        console.log('Total placed widgets:', placed.length);
+        renderGrid();
+      } else {
+        console.log('Cannot place directly, showing push options');
+        // Show push options
+        showPushOptions(widget, col, row, size.w, size.h);
+      }
+    }
+
+    function showPushOptions(widget, col, row, w, h) {
+      hidePushOptions();
+      
+      const grid = document.getElementById('grid');
+      const options = document.createElement('div');
+      options.className = 'push-options';
+      options.id = 'pushOptions';
+      
+      // Calculate position - clamp to grid bounds for display
+      const displayCol = Math.max(0, Math.min(col, GRID_COLS - 1));
+      const displayRow = Math.max(0, Math.min(row, GRID_ROWS - 1));
+      const x = displayCol * (CELL_SIZE + GAP) + CELL_SIZE / 2;
+      const y = displayRow * (CELL_SIZE + GAP) + CELL_SIZE / 2;
+      options.style.left = `${x}px`;
+      options.style.top = `${y}px`;
+      options.style.transform = 'translate(-50%, -50%)';
+      
+      let html = '<h4>Cannot place here - choose an option:</h4>';
+      
+      const directions = [
+        { dir: 'right', label: 'Push widgets right →' },
+        { dir: 'left', label: '← Push widgets left' },
+        { dir: 'down', label: 'Push widgets down ↓' },
+        { dir: 'up', label: '↑ Push widgets up' }
+      ];
+      
+      let hasValidOption = false;
+      directions.forEach(({ dir, label }) => {
+        if (canPushWidgets(col, row, w, h, dir)) {
+          html += `<button onclick="applyPush('${widget.id}', ${col}, ${row}, ${w}, ${h}, '${dir}')">${label}</button>`;
+          hasValidOption = true;
+        }
+      });
+      
+      if (!hasValidOption) {
+        html += '<p style="color: #666; font-size: 12px; margin: 8px 0;">No space available - try a different location</p>';
+      }
+      
+      html += '<button class="cancel" onclick="hidePushOptions()">Cancel</button>';
+      options.innerHTML = html;
+      
+      grid.appendChild(options);
+      pendingPlacement = { widget, col, row, w, h };
+    }
+
+    function showPushOptionsForMove(widgetIndex, col, row) {
+      const widget = placed[widgetIndex];
+      hidePushOptions();
+      
+      const grid = document.getElementById('grid');
+      const options = document.createElement('div');
+      options.className = 'push-options';
+      options.id = 'pushOptions';
+      
+      const displayCol = Math.max(0, Math.min(col, GRID_COLS - 1));
+      const displayRow = Math.max(0, Math.min(row, GRID_ROWS - 1));
+      const x = displayCol * (CELL_SIZE + GAP) + CELL_SIZE / 2;
+      const y = displayRow * (CELL_SIZE + GAP) + CELL_SIZE / 2;
+      options.style.left = `${x}px`;
+      options.style.top = `${y}px`;
+      options.style.transform = 'translate(-50%, -50%)';
+      
+      let html = '<h4>Cannot move here - choose an option:</h4>';
+      
+      const directions = [
+        { dir: 'right', label: 'Push widgets right →' },
+        { dir: 'left', label: '← Push widgets left' },
+        { dir: 'down', label: 'Push widgets down ↓' },
+        { dir: 'up', label: '↑ Push widgets up' }
+      ];
+      
+      let hasValidOption = false;
+      directions.forEach(({ dir, label }) => {
+        if (canPushWidgetsExcluding(col, row, widget.w, widget.h, widgetIndex, dir)) {
+          html += `<button onclick="applyPushForMove(${widgetIndex}, ${col}, ${row}, '${dir}')">${label}</button>`;
+          hasValidOption = true;
+        }
+      });
+      
+      if (!hasValidOption) {
+        html += '<p style="color: #666; font-size: 12px; margin: 8px 0;">Cannot move - would push widgets out of bounds</p>';
+      }
+      
+      html += '<button class="cancel" onclick="hidePushOptions()">Cancel</button>';
+      options.innerHTML = html;
+      
+      grid.appendChild(options);
+    }
+
+    function canPushWidgetsExcluding(col, row, w, h, excludeIndex, direction) {
+      const conflicts = placed.filter((p, i) => {
+        if (i === excludeIndex) return false;
+        return col < p.col + p.w &&
+          col + w > p.col &&
+          row < p.row + p.h &&
+          row + h > p.row;
+      });
+      
+      if (conflicts.length === 0) return true;
+
+      const pushAmount = direction === 'right' || direction === 'left' ? w : h;
+      
+      for (let conflict of conflicts) {
+        let newCol = conflict.col;
+        let newRow = conflict.row;
+
+        if (direction === 'right') newCol += pushAmount;
+        if (direction === 'left') newCol -= pushAmount;
+        if (direction === 'down') newRow += pushAmount;
+        if (direction === 'up') newRow -= pushAmount;
+
+        if (newCol < 0 || newCol + conflict.w > GRID_COLS ||
+            newRow < 0 || newRow + conflict.h > GRID_ROWS) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function applyPushForMove(widgetIndex, col, row, direction) {
+      const widget = placed[widgetIndex];
+      const conflicts = placed.filter((p, i) => {
+        if (i === widgetIndex) return false;
+        return col < p.col + p.w &&
+          col + widget.w > p.col &&
+          row < p.row + p.h &&
+          row + widget.h > p.row;
+      });
+      
+      const pushAmount = direction === 'right' || direction === 'left' ? widget.w : widget.h;
+      
+      conflicts.forEach(conflict => {
+        if (direction === 'right') conflict.col += pushAmount;
+        if (direction === 'left') conflict.col -= pushAmount;
+        if (direction === 'down') conflict.row += pushAmount;
+        if (direction === 'up') conflict.row -= pushAmount;
+      });
+      
+      widget.col = col;
+      widget.row = row;
+      
+      hidePushOptions();
+      renderGrid();
+    }
+
+    window.applyPushForMove = applyPushForMove;
+    window.removeWidget = removeWidget;
+
+    function hidePushOptions() {
+      const options = document.getElementById('pushOptions');
+      if (options) options.remove();
+      pendingPlacement = null;
+      hidePreview();
+    }
+
+    function applyPush(widgetId, col, row, w, h, direction) {
+  const widget = Object.values(widgetCategories)
+    .flat()
+    .find(w => w.id === widgetId);
+
+  if (!widget) return;
+
+      
+      pushWidgets(col, row, w, h, direction);
+      const size = sizeMap[widget.size];
+      placed.push({
+        ...widget,
+        col,
+        row,
+        w: size.w,
+        h: size.h,
+      });
+      
+      hidePushOptions();
+      renderGrid();
+    }
+
+    // Make functions globally accessible
+    window.applyPush = applyPush;
+    window.hidePushOptions = hidePushOptions;
+
+    // Set up grid drop handlers
+    const grid = document.getElementById('grid');
+    
+    grid.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      
+      const rect = grid.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const col = Math.floor(x / (CELL_SIZE + GAP));
+      const row = Math.floor(y / (CELL_SIZE + GAP));
+      
+      // Show preview during drag
+      if (draggedWidget !== null) {
+        const widget = placed[draggedWidget];
+        showPreview(col, row, widget.w, widget.h, canPlaceExcluding(col, row, widget.w, widget.h, draggedWidget));
+      } else if (previewWidget) {
+        // Dragging from widget panel
+        const size = sizeMap[previewWidget.size];
+        showPreview(col, row, size.w, size.h, canPlace(col, row, size.w, size.h));
+      }
+    });
+
+    grid.addEventListener('dragleave', (e) => {
+      hidePreview();
+    });
+
+    function showPreview(col, row, w, h, isValid) {
+      hidePreview();
+      
+      if (col < 0 || row < 0 || col >= GRID_COLS || row >= GRID_ROWS) return;
+      
+      const preview = document.createElement('div');
+      preview.className = 'drop-preview';
+      preview.id = 'dropPreview';
+      if (!isValid) preview.classList.add('invalid');
+      
+      preview.style.width = `${w * CELL_SIZE + (w - 1) * GAP}px`;
+      preview.style.height = `${h * CELL_SIZE + (h - 1) * GAP}px`;
+      preview.style.left = `${col * (CELL_SIZE + GAP)}px`;
+      preview.style.top = `${row * (CELL_SIZE + GAP)}px`;
+      
+      grid.appendChild(preview);
+    }
+
+    function hidePreview() {
+      const preview = document.getElementById('dropPreview');
+      if (preview) preview.remove();
+    }
+
+    grid.addEventListener('drop', (e) => {
+      e.preventDefault();
+      hidePreview();
+      hidePushOptions(); // Close any open push options
+      
+      console.log('Drop event triggered');
+      
+      const rect = grid.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const col = Math.max(0, Math.min(Math.floor(x / (CELL_SIZE + GAP)), GRID_COLS - 1));
+      const row = Math.max(0, Math.min(Math.floor(y / (CELL_SIZE + GAP)), GRID_ROWS - 1));
+
+      console.log('Drop position:', col, row);
+      console.log('Dragged widget index:', draggedWidget);
+
+      // Check if we're dragging an existing widget
+      if (draggedWidget !== null) {
+        console.log('Moving existing widget');
+        const widget = placed[draggedWidget];
+        if (canPlaceExcluding(col, row, widget.w, widget.h, draggedWidget)) {
+          widget.col = col;
+          widget.row = row;
+          renderGrid();
+        } else {
+          // Show push options for moving existing widget
+          showPushOptionsForMove(draggedWidget, col, row);
+        }
+        draggedWidget = null;
+        return;
+      }
+
+      // Otherwise, we're adding a new widget from the panel
+      const widgetId = e.dataTransfer.getData('text/plain');
+      console.log('Widget ID from drag:', widgetId);
+      
+      if (!widgetId || widgetId === 'existing') {
+        console.log('No valid widget ID found');
+        return;
+      }
+
+      const widget = Object.values(widgetCategories)
+  .flat()
+  .find(w => w.id === widgetId);
+      console.log('Found widget:', widget);
+      
+      if (!widget) {
+        console.log('Widget not found in widgets array');
+        return;
+      }
+
+      placeWidget(widget, col, row);
+    });
+
+    // Initialize
+    renderWidgetList();
+    renderGrid();
+
+    // Add some sample widgets on startup
+    setTimeout(() => {
+  const allWidgets = Object.values(widgetCategories).flat();
+
+  placed.push({ ...allWidgets[42], col: 0, row: 0, w: 3, h: 3 });
+  placed.push({ ...allWidgets[26], col: 3, row: 0, w: 2, h: 2 });
+  placed.push({ ...allWidgets[35], col: 3, row: 2, w: 1, h: 1 });
+
+  renderGrid();
+}, 100);
+  </script>
+
+</body></html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en" data-bh-theme="buckholt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard – Drag & Drop with Tabs</title>
+  <link rel="stylesheet" href="compiled.css" />
+  <style>
+    /* Minor helpers for drag-and-drop visuals */
+    .widget { position: relative; }
+    .widget.dragging { opacity: 0.6; }
+    .drop-indicator { position: absolute; inset: 0; border: 2px dashed #3F66D1; border-radius: 1rem; pointer-events: none; display: none; }
+    .widget.drop-target .drop-indicator { display: block; }
+    .grid-bento { width: 100%; }
+    .card .heading-actions { display: flex; gap: 0.5rem; }
+    .drag-handle { cursor: grab; }
+    .drag-handle:active { cursor: grabbing; }
+  </style>
+</head>
+<body>
+  <section class="page-body">
+    <div class="page-section">
+      <div class="container">
+        <div class="content-group">
+          <div class="text-block">
+            <div class="heading">
+              <h2 class="h2">Dashboard</h2>
+              <div class="button-set">
+                <button id="toggleEdit" class="btn btn-secondary"><span class="button-label">Edit layout</span></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="tabs">
+            <div class="tab-items">
+              <nav class="nav nav-underline" id="dashboardTabs" role="tablist">
+                <a class="nav-link active" data-tab="activity" href="#activity" role="tab" aria-selected="true">Activity</a>
+                <a class="nav-link" data-tab="performance" href="#performance" role="tab">Performance</a>
+                <a class="nav-link" data-tab="policy-status" href="#policy-status" role="tab">Policy Status</a>
+                <a class="nav-link" data-tab="renewals" href="#renewals" role="tab">Renewals</a>
+                <a class="nav-link" data-tab="sanctions" href="#sanctions" role="tab">Sanctions</a>
+                <a class="nav-link" data-tab="tasks" href="#tasks" role="tab">Tasks</a>
+              </nav>
+            </div>
+
+            <div class="tab-content" id="tabContent">
+              <!-- Activity Tab -->
+              <div class="tab-pane active" id="activity" role="tabpanel">
+                <div class="grid grid-bento g-6" id="grid-activity">
+
+                  <div class="widget bento-1x2" id="w-activity-1">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">in the last 7 days</span>
+                        <h3 class="display-02">56 actions</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-2x2" id="w-activity-2">
+                    <div class="card bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <div class="heading">
+                          <h4 class="h4">Recent client activity</h4>
+                        </div>
+                        <ul>
+                          <li>Andrea Chilton updated a file <small>20m ago</small></li>
+                          <li>Katerina Danilovska initiated MFA <small>25m ago</small></li>
+                          <li>Laurence Abbott viewed policy <small>29m ago</small></li>
+                          <li>Mark Fishwell added an attachment <small>30m ago</small></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-1x2" id="w-activity-3">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">Top broker</span>
+                        <h3 class="headline-02">Keycare</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-2x2" id="w-activity-4">
+                    <div class="card bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <div class="heading">
+                          <h4 class="h4">Top 5 brands by commission</h4>
+                        </div>
+                        <span class="eyebrow">This month</span>
+                        <ul>
+                          <li>Keycare <strong>£12,000</strong></li>
+                          <li>Aviva <strong>£10,500</strong></li>
+                          <li>Towergate <strong>£9,800</strong></li>
+                          <li>RSA <strong>£8,600</strong></li>
+                          <li>Zurich <strong>£7,950</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Performance Tab -->
+              <div class="tab-pane" id="performance" role="tabpanel">
+                <div class="grid grid-bento g-6" id="grid-performance">
+
+                  <div class="widget bento-1x2" id="w-performance-1">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">Gross written premium</span>
+                        <h3 class="display-03">£124k</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-1x2" id="w-performance-2">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">Avg. per policy</span>
+                        <h3 class="display-02">£6,268</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Policy Status Tab -->
+              <div class="tab-pane" id="policy-status" role="tabpanel">
+                <div class="grid grid-bento g-6" id="grid-policy-status">
+
+                  <div class="widget bento-1x2" id="w-policy-1">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">Policies active</span>
+                        <h3 class="display-02">120/123</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-1x2" id="w-policy-2">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">Awaiting payment</span>
+                        <h3 class="display-02">7</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-2x2" id="w-policy-3">
+                    <div class="card bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <div class="heading"><h4 class="h4">Invitations sent</h4></div>
+                        <h3 class="headline-03">90</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Renewals Tab -->
+              <div class="tab-pane" id="renewals" role="tabpanel">
+                <div class="grid grid-bento g-6" id="grid-renewals">
+
+                  <div class="widget bento-2x2" id="w-renewals-1">
+                    <div class="card bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <div class="heading"><h4 class="h4">Renewals</h4></div>
+                        <p>150/200 completed</p>
+                        <div class="progress" style="height: 0.5rem; background-color: rgba(26,26,26,0.07); border-radius: 2rem;">
+                          <div style="width: 75%; height: 100%; background-color: #0F40C5; border-radius: 2rem;"></div>
+                        </div>
+                        <small>Due between 29/12/2025 – 29/01/2026</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-2x2" id="w-renewals-2">
+                    <div class="card bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <div class="heading"><h4 class="h4">Policies due for renewal</h4></div>
+                        <span class="eyebrow">Grouped by product</span>
+                        <ul>
+                          <li>Keycare – Open Market Motor <strong>17</strong></li>
+                          <li>Aviva – Business Lines <strong>9</strong></li>
+                          <li>Towergate – Business Lines <strong>7</strong></li>
+                          <li>RSA – Business Lines – Supervisor <strong>6</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Sanctions Tab -->
+              <div class="tab-pane" id="sanctions" role="tabpanel">
+                <div class="grid grid-bento g-6" id="grid-sanctions">
+
+                  <div class="widget bento-1x2" id="w-sanctions-1">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">Sanctions pending</span>
+                        <h3 class="display-02">5</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-2x2" id="w-sanctions-2">
+                    <div class="card bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <div class="heading"><h4 class="h4">For review</h4></div>
+                        <ul>
+                          <li>Isabella Nguyen – 999/027/Y049/DEL – <strong>79%</strong></li>
+                          <li>Sofia Patel – 999/027/Y049/DEL – <strong>79%</strong></li>
+                          <li>Liam Smith – 999/027/Y049/DEL – <strong>79%</strong></li>
+                          <li>Owen Davies – 999/027/Y049/DEL – <strong>79%</strong></li>
+                          <li>Mia Thompson – 999/027/Y049/DEL – <strong>79%</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Tasks Tab -->
+              <div class="tab-pane" id="tasks" role="tabpanel">
+                <div class="grid grid-bento g-6" id="grid-tasks">
+
+                  <div class="widget bento-1x2" id="w-tasks-1">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">Assigned to you</span>
+                        <h3 class="display-02">25 tasks</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-1x2" id="w-tasks-2">
+                    <div class="card card-secondary bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <span class="eyebrow">Status</span>
+                        <p>Ready 16 • Ongoing 2 • Review 7</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="widget bento-2x2" id="w-tasks-3">
+                    <div class="card bento-box">
+                      <div class="drop-indicator"></div>
+                      <div class="card-body">
+                        <div class="heading"><h4 class="h4">To do</h4></div>
+                        <ul>
+                          <li><strong>Claim Added – WOOLF</strong> • Emailed to Kinetic</li>
+                          <li>Telephone Call Subs – Quote</li>
+                          <li>Audit Printed</li>
+                          <li>Agreed Value</li>
+                          <li>Telephone Call Subs – Quote</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  // Simple tabs implementation
+  (function() {
+    const tabsNav = document.getElementById('dashboardTabs');
+    const panes = document.querySelectorAll('.tab-pane');
+
+    tabsNav.addEventListener('click', function(e) {
+      const link = e.target.closest('.nav-link');
+      if (!link) return;
+      e.preventDefault();
+      const targetId = link.getAttribute('href').substring(1);
+
+      // set active link
+      tabsNav.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
+      link.classList.add('active');
+
+      // show correct pane
+      panes.forEach(p => p.classList.remove('active'));
+      const tgt = document.getElementById(targetId);
+      if (tgt) tgt.classList.add('active');
+
+      // ensure DnD listeners for the newly active pane
+      initGridDnD(tgt.querySelector('.grid-bento'));
+    });
+  })();
+
+  // Drag-and-drop for grid widgets
+  const IS_EDIT_KEY = 'dashboard:isEdit';
+
+  function initGridDnD(gridEl){
+    if (!gridEl) return;
+    const widgets = gridEl.querySelectorAll('.widget');
+
+    widgets.forEach(w => {
+      // Apply draggable based on Edit mode
+      const isEdit = localStorage.getItem(IS_EDIT_KEY) === 'true';
+      w.setAttribute('draggable', isEdit ? 'true' : 'false');
+
+      // Add a drag handle icon in header (optional)
+      const cardBody = w.querySelector('.card-body');
+      if (cardBody && !cardBody.querySelector('.drag-handle')){
+        const handle = document.createElement('span');
+        handle.className = 'icon drag-handle';
+        handle.title = 'Drag to rearrange';
+        handle.innerHTML = '&#x2630;'; // simple burger icon
+        const heading = cardBody.querySelector('.heading');
+        if (heading){
+          let actions = heading.querySelector('.heading-actions');
+          if (!actions){
+            actions = document.createElement('div');
+            actions.className = 'heading-actions';
+            heading.appendChild(actions);
+          }
+          actions.appendChild(handle);
+        } else {
+          cardBody.insertBefore(handle, cardBody.firstChild);
+        }
+      }
+
+      w.addEventListener('dragstart', (ev) => {
+        if (w.getAttribute('draggable') !== 'true') { ev.preventDefault(); return; }
+        w.classList.add('dragging');
+        ev.dataTransfer.setData('text/plain', w.id);
+        ev.dataTransfer.effectAllowed = 'move';
+      });
+
+      w.addEventListener('dragend', () => {
+        w.classList.remove('dragging');
+      });
+
+      w.addEventListener('dragover', (ev) => {
+        const isEdit = localStorage.getItem(IS_EDIT_KEY) === 'true';
+        if (!isEdit) return;
+        ev.preventDefault();
+        const dragging = gridEl.querySelector('.widget.dragging');
+        if (!dragging || dragging === w) return;
+        w.classList.add('drop-target');
+
+        const rect = w.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const before = ev.clientY < midY;
+        if (before) {
+          gridEl.insertBefore(dragging, w);
+        } else {
+          gridEl.insertBefore(dragging, w.nextSibling);
+        }
+      });
+
+      w.addEventListener('dragleave', () => {
+        w.classList.remove('drop-target');
+      });
+
+      w.addEventListener('drop', (ev) => {
+        ev.preventDefault();
+        w.classList.remove('drop-target');
+        persistOrder(gridEl);
+      });
+    });
+
+    // restore order if stored
+    restoreOrder(gridEl);
+  }
+
+  function persistOrder(gridEl){
+    const id = gridEl.id || 'grid';
+    const order = Array.from(gridEl.querySelectorAll('.widget')).map(w => w.id);
+    localStorage.setItem('order:'+id, JSON.stringify(order));
+  }
+
+  function restoreOrder(gridEl){
+    const id = gridEl.id || 'grid';
+    const raw = localStorage.getItem('order:'+id);
+    if (!raw) return;
+    try {
+      const order = JSON.parse(raw);
+      order.forEach(wid => {
+        const w = gridEl.querySelector('#'+wid);
+        if (w) gridEl.appendChild(w);
+      });
+    } catch(e){/* ignore */}
+  }
+
+  // Edit mode toggle
+  (function(){
+    const btn = document.getElementById('toggleEdit');
+    const setEdit = (flag) => {
+      localStorage.setItem(IS_EDIT_KEY, flag ? 'true' : 'false');
+      document.querySelectorAll('.grid-bento').forEach(g => {
+        g.querySelectorAll('.widget').forEach(w => w.setAttribute('draggable', flag ? 'true' : 'false'));
+      });
+      btn.classList.toggle('btn-primary', flag);
+      btn.classList.toggle('btn-secondary', !flag);
+      btn.querySelector('.button-label').textContent = flag ? 'Editing (drag enabled)' : 'Edit layout';
+    };
+
+    const initial = localStorage.getItem(IS_EDIT_KEY) === 'true';
+    setEdit(initial);
+
+    btn.addEventListener('click', () => setEdit(!(localStorage.getItem(IS_EDIT_KEY) === 'true')));
+  })();
+
+  // Initialize DnD on first render
+  document.querySelectorAll('.grid-bento').forEach(initGridDnD);
+  </script>
+</body>
+</html>

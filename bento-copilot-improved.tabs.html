@@ -1,0 +1,394 @@
+
+<!doctype html>
+<html lang="en" data-bh-theme="buckholt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bento Dashboard – Tabs</title>
+  <link rel="stylesheet" href="compiled.css" />
+  <style>
+    /* Small helper styles for placeholder charts */
+    .sparkline {
+      width: 100%;
+      height: 80px;
+    }
+    .progress-bar {
+      height: 0.5rem;
+      background: rgba(26,26,26,0.07);
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+    .progress-bar > span {
+      display:block;height:100%;background:#0F40C5;width:50%;
+    }
+    .kpi-grid { display:grid; grid-template-columns: repeat(3, minmax(12rem, 1fr)); gap: 1rem; }
+    .widget-grid { display:grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; }
+    .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; }
+    .col-6 { grid-column: span 6; }
+    .col-12 { grid-column: span 12; }
+    .list { width: 100%; }
+    .list ul { list-style: none; padding-left: 0; margin: 0; }
+    .list li { display:flex; align-items:center; justify-content:space-between; padding: 0.25rem 0; border-bottom: 1px solid rgba(26,26,26,0.07); }
+    .list li:last-child { border-bottom: none; }
+    .muted { color: rgba(26,26,26,0.625); }
+    .count-pill { min-width: 2rem; text-align:center; }
+  </style>
+</head>
+<body>
+  <main class="page-body">
+    <section class="page-section">
+      <div class="container">
+        <div class="content-group">
+          <h2 class="headline-02">Dashboard</h2>
+
+          <!-- Tabs -->
+          <div class="tabs" id="dashboard-tabs">
+            <div class="tab-items">
+              <div class="tab-items-scroll">
+                <ul class="nav nav-underline" role="tablist">
+                  <li class="nav-item"><a class="nav-link active" href="#activity" data-tab="activity" role="tab">Activity</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#performance" data-tab="performance" role="tab">Performance</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#policy-status" data-tab="policy-status" role="tab">Policy Status</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#renewals" data-tab="renewals" role="tab">Renewals</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#sanctions-tasks" data-tab="sanctions-tasks" role="tab">SanctionsTasks</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="tab-content">
+
+              <!-- Activity Tab -->
+              <div class="tab-pane active" id="activity" role="tabpanel">
+                <div class="widget-grid">
+                  <!-- Action count / KPI -->
+                  <article class="card col-3">
+                    <div class="card-body">
+                      <div class="icon-block icon-block-sm expressive-light" aria-hidden="true">⚡</div>
+                      <div class="text-block">
+                        <span class="eyebrow">Actions</span>
+                        <h3 class="title-03">56</h3>
+                        <small class="small">in the last 7 days</small>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- New business quick stat -->
+                  <article class="card col-3">
+                    <div class="card-body">
+                      <div class="icon-block icon-block-sm expressive-light" aria-hidden="true">🧾</div>
+                      <div class="text-block">
+                        <span class="eyebrow">New business</span>
+                        <h3 class="title-03">32 policies</h3>
+                        <small class="small">this week</small>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- Recent activity feed -->
+                  <article class="card col-6">
+                    <header class="card-header"><span class="title-02">Recent client activity</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>Andrea Chilton updated a file</span><span class="muted">20m ago</span></li>
+                          <li><span>Katerina Danilovska initiated MFA</span><span class="muted">25m ago</span></li>
+                          <li><span>Laurence Abbott viewed policy</span><span class="muted">29m ago</span></li>
+                          <li><span>Mark Fishwell added attachment</span><span class="muted">30m ago</span></li>
+                          <li><span>Katerina Danilovska viewed policy</span><span class="muted">38m ago</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- Changes this week -->
+                  <article class="card col-4">
+                    <header class="card-header"><span class="title-02">Changes this week</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>Added a policy note</span><span class="muted">3h ago</span></li>
+                          <li><span>Updated risk data</span><span class="muted">20m ago</span></li>
+                          <li><span>Invited MFA</span><span class="muted">25m ago</span></li>
+                          <li><span>Viewed policy</span><span class="muted">29m ago</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- Ending business / alerts -->
+                  <article class="card col-8">
+                    <header class="card-header"><span class="title-02">Ending business</span></header>
+                    <div class="card-body">
+                      <div class="alert alert-warning alert-dismissible" role="alert">
+                        <div class="alert-content">
+                          <div class="alert-icon">⚠️</div>
+                          <div class="alert-message"><strong>24</strong> policies will lapse in the next 7 days</div>
+                        </div>
+                      </div>
+                      <div class="list">
+                        <ul>
+                          <li><span>Aviva Car 25</span><span class="muted">5 policies</span></li>
+                          <li><span>Keycare – Open Market Motor</span><span class="muted">12 policies</span></li>
+                          <li><span>Towergate – Busines Lines</span><span class="muted">7 policies</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <!-- Performance Tab -->
+              <div class="tab-pane" id="performance" role="tabpanel">
+                <div class="widget-grid">
+                  <!-- KPIs -->
+                  <article class="card col-12">
+                    <div class="card-body">
+                      <div class="kpi-grid">
+                        <div class="card card-secondary">
+                          <div class="card-body">
+                            <span class="eyebrow">This month commission</span>
+                            <div class="value-03">£78k</div>
+                            <small class="small">+12% vs last month</small>
+                          </div>
+                        </div>
+                        <div class="card card-secondary">
+                          <div class="card-body">
+                            <span class="eyebrow">Quarter-to-date</span>
+                            <div class="value-03">£124k</div>
+                            <small class="small">EVR £15.4k</small>
+                          </div>
+                        </div>
+                        <div class="card card-secondary">
+                          <div class="card-body">
+                            <span class="eyebrow">Average per policy</span>
+                            <div class="value-03">£6,268</div>
+                            <small class="small">Top band: Keycare</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- Top 5 by commission -->
+                  <article class="card col-6">
+                    <header class="card-header"><span class="title-02">Top 5 brokers by commission</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>Keycare</span><span>£12,000</span></li>
+                          <li><span>Aviva</span><span>£10,500</span></li>
+                          <li><span>Towergate</span><span>£9,800</span></li>
+                          <li><span>RSA</span><span>£8,600</span></li>
+                          <li><span>Zurich</span><span>£7,950</span></li>
+                        </ul>
+                      </div>
+                      <div class="sparkline">
+                        <svg class="sparkline" viewBox="0 0 200 80" preserveAspectRatio="none">
+                          <polyline points="0,60 20,55 40,50 60,45 80,40 100,44 120,38 140,35 160,30 180,28 200,25" fill="none" stroke="#0F40C5" stroke-width="2"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- Top selling products -->
+                  <article class="card col-6">
+                    <header class="card-header"><span class="title-02">Top selling products</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>Aviva Car 25</span><span class="muted">24 policies</span></li>
+                          <li><span>Keycare – Open Market Motor</span><span class="muted">18 policies</span></li>
+                          <li><span>Wesleyan – Pro Care</span><span class="muted">15 policies</span></li>
+                          <li><span>MotorGuard – Classic Car</span><span class="muted">12 policies</span></li>
+                          <li><span>Home Cover</span><span class="muted">9 policies</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <!-- Policy Status Tab -->
+              <div class="tab-pane" id="policy-status" role="tabpanel">
+                <div class="widget-grid">
+                  <!-- Totals -->
+                  <article class="card col-3">
+                    <div class="card-body">
+                      <span class="eyebrow">Policies</span>
+                      <div class="value-03">120</div>
+                      <small class="small">/ 123 active</small>
+                    </div>
+                  </article>
+                  <article class="card col-3">
+                    <div class="card-body">
+                      <span class="eyebrow">Invitations</span>
+                      <div class="value-03">90</div>
+                      <small class="small">sent</small>
+                    </div>
+                  </article>
+                  <article class="card col-6">
+                    <header class="card-header"><span class="title-02">Policies due for renewal</span></header>
+                    <div class="card-body">
+                      <div class="progress-bar" aria-label="renewal progress"><span style="width: 75%"></span></div>
+                      <div class="list" style="margin-top:1rem;">
+                        <ul>
+                          <li><span>Keycare – Open Market Motor</span><span class="count-pill tag tag-sm">8/17</span></li>
+                          <li><span>Aviva – Business Lines</span><span class="count-pill tag tag-sm">6/9</span></li>
+                          <li><span>Towergate – Business Lines</span><span class="count-pill tag tag-sm">5/7</span></li>
+                          <li><span>RSA – Business Lines – Supervisor</span><span class="count-pill tag tag-sm">4/6</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- Activity by status -->
+                  <article class="card col-12">
+                    <header class="card-header"><span class="title-02">Status breakdown</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>New policies</span><span class="tag tag-status-success">32</span></li>
+                          <li><span>Pending docs</span><span class="tag tag-status-warning">18</span></li>
+                          <li><span>Awaiting payment</span><span class="tag tag-status-error">7</span></li>
+                          <li><span>Cancelled</span><span class="tag">3</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <!-- Renewals Tab -->
+              <div class="tab-pane" id="renewals" role="tabpanel">
+                <div class="widget-grid">
+                  <article class="card col-12">
+                    <div class="card-body">
+                      <div class="text-block">
+                        <span class="eyebrow">Renewals</span>
+                        <h3 class="title-03">150/200</h3>
+                        <small class="small">due between 29/12/2025–29/01/2026</small>
+                        <div class="progress-bar" style="margin-top:1rem"><span style="width: 75%"></span></div>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="card col-6">
+                    <header class="card-header"><span class="title-02">Weekly completion trend</span></header>
+                    <div class="card-body">
+                      <svg class="sparkline" viewBox="0 0 200 80" preserveAspectRatio="none">
+                        <rect x="10" y="40" width="12" height="30" fill="#0F40C5"/>
+                        <rect x="40" y="35" width="12" height="35" fill="#0F40C5"/>
+                        <rect x="70" y="25" width="12" height="45" fill="#0F40C5"/>
+                        <rect x="100" y="30" width="12" height="40" fill="#0F40C5"/>
+                        <rect x="130" y="20" width="12" height="50" fill="#0F40C5"/>
+                        <rect x="160" y="18" width="12" height="52" fill="#0F40C5"/>
+                      </svg>
+                    </div>
+                  </article>
+
+                  <article class="card col-6">
+                    <header class="card-header"><span class="title-02">Policies due for renewal</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>Keycare – Open Market Motor</span><span class="count-pill tag tag-sm">8/17</span></li>
+                          <li><span>Aviva – Business Lines</span><span class="count-pill tag tag-sm">6/9</span></li>
+                          <li><span>Towergate – Business Lines</span><span class="count-pill tag tag-sm">5/7</span></li>
+                          <li><span>RSA – Business Lines – Supervisor</span><span class="count-pill tag tag-sm">4/6</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <!-- Sanctions & Tasks Tab -->
+              <div class="tab-pane" id="sanctions-tasks" role="tabpanel">
+                <div class="widget-grid">
+                  <!-- Sanctions checks KPI -->
+                  <article class="card col-4">
+                    <div class="card-body">
+                      <div class="icon-block icon-block-sm expressive-light" aria-hidden="true">🛡️</div>
+                      <div class="text-block">
+                        <span class="eyebrow">Sanctions</span>
+                        <h3 class="title-03">5 checks pending</h3>
+                        <small class="small">3 high priority</small>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- Sanctions list -->
+                  <article class="card col-8">
+                    <header class="card-header"><span class="title-02">Sanctions checks pending</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>Natasha Nguyen</span><span class="muted">Due today</span></li>
+                          <li><span>Sofia Perez</span><span class="muted">In review</span></li>
+                          <li><span>Liam Smith</span><span class="muted">In review</span></li>
+                          <li><span>Ross Thomas</span><span class="muted">Due 3d</span></li>
+                          <li><span>Gwen Davies</span><span class="muted">Due 5d</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+
+                  <!-- Tasks widgets -->
+                  <article class="card col-6">
+                    <header class="card-header"><span class="title-02">Tasks – Assigned to you</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>Claim Added – WOOLF emailed to Kinetic</span><span class="tag tag-status-success">Ready</span></li>
+                          <li><span>Telephone call Subs – Quote</span><span class="tag tag-status-warning">Ongoing</span></li>
+                          <li><span>Audit Printed</span><span class="tag tag-status-info">Review</span></li>
+                          <li><span>Agreed Value</span><span class="tag">To do</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="card col-6">
+                    <header class="card-header"><span class="title-02">Tasks – To do</span></header>
+                    <div class="card-body">
+                      <div class="list">
+                        <ul>
+                          <li><span>Claim Added – WOOLF emailed to Kinetic</span><span class="muted">5m ago</span></li>
+                          <li><span>Telephone call Subs – Quote</span><span class="muted">9m ago</span></li>
+                          <li><span>Audit Printed</span><span class="muted">12m ago</span></li>
+                          <li><span>Agreed Value</span><span class="muted">15m ago</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Simple tab controller without external libs
+    const tabs = document.querySelectorAll('#dashboard-tabs .nav-link');
+    const panes = document.querySelectorAll('#dashboard-tabs .tab-pane');
+    tabs.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = link.getAttribute('data-tab');
+        // active link
+        tabs.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        // active pane
+        panes.forEach(p => {
+          if (p.id === id) p.classList.add('active'); else p.classList.remove('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

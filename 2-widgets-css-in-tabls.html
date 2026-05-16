@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en" data-bh-theme="buckholt">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Widgets</title>
+
+  <!-- Typography / brand fonts (kept from your original file) -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/alw3iql.css">
+
+  <!-- Design system CSS -->
+  <link rel="stylesheet" href="compiled.css">
+
+  <!-- Font Awesome -->
+  <script src="https://kit.fontawesome.com/4d37119cf7.js" crossorigin="anonymous"></script>
+
+  <style>
+    /* Minimal layout helpers only (no re-styling of components) */
+    .dashboard-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 2rem;
+    }
+
+    .tab-pane {
+      padding-top: 1.5rem;
+    }
+
+    .widget-row-gap {
+      row-gap: 1.5rem;
+    }
+
+    /* KPI header: match compact DS layout */
+    .kpi-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    :root {
+      font-family: system-ui, sans-serif;
+      font-size: 16px;
+      --dark-color: #5c6378ff;
+      --light-color: #edf2f4ff;
+      --card-border: #DADADA;
+      --background-color: #2b2d42ff;
+      --secondary-color: #757e93ff;
+      --antiflash-white: #edf2f4ff;
+      --important-color: #ef233cff;
+      --fire-engine-red: #d90429ff;
+      --card-padding-x: 1rem;
+      --card-padding-y: 1rem;
+      --card-padding-y-lg: 2rem;
+      --card-padding-x-lg: 2rem;
+      --card-body-gap: 1rem;
+      --card-text: #1a1a1a;
+      --keyvalue-gap: 0.5rem;
+      --keyvalue-key: #454545;
+      --keyvalue-value: #1a1a1a;
+      --card-background: #ffffff;
+    }
+
+    body {
+      background-color: var(--ui-background-04);
+      margin: 0;
+    }
+
+    article {
+      background-color: var(--card-background);
+      color: var(--dark-color);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      min-width: 10rem;
+      min-height: 10rem;
+    }
+
+    article figure {
+      margin: 0;
+    }
+
+    img {
+      display: block;
+      width: 100%;
+    }
+
+    main {
+      width: 90%;
+      max-width: 1200px;
+      margin-inline: auto;
+      padding-block-start: 2rem;
+    }
+
+   
+    .bento {
+      --bento-cols: 7;
+      --bento-rows: 4;
+      --bento-border-radius: 1rem;
+
+      /* separate inner gap vs outer padding if you want */
+      --bento-gap: 1.5rem;
+      --bento-padding: 1rem;
+
+      display: grid;
+      grid-template-columns: repeat(var(--bento-cols), 10rem);
+      grid-template-rows: repeat(var(--bento-rows), 10rem);
+
+      gap: var(--bento-gap);          /* ✅ spacing BETWEEN widgets */
+      padding: var(--bento-padding);  /* ✅ spacing AROUND the whole grid */
+
+      width: 100%;
+      aspect-ratio: var(--bento-cols) / var(--bento-rows);
+      grid-template-areas:
+        "Tasks-L Tasks-L Tasks-L Tasks-M Tasks-M"
+        "Tasks-L Tasks-L Tasks-L Tasks-M Tasks-M "
+        "Tasks-L Tasks-L Tasks-L empty-box empty-box "
+        "Tasks-S Tasks-S Tasks-XS empty-box empty-box ";
+
+    }
+
+    .bento>* {
+      overflow: hidden;
+      position: relative;
+      margin: 0;
+      border-radius: var(--bento-border-radius);
+    }
+
+    @media screen and (aspect-ratio < 1) {
+      .bento {
+        --bento-cols: 7;
+        --bento-rows: 4;
+      }
+    }
+
+    .bento.layout-1> :nth-child(1) {
+      grid-column: span 2;
+      grid-row: span 2;
+      background-color: var(--important-color);
+      color: var(--light-color);
+    }
+
+    .bento.layout-1> :nth-child(2) {
+      grid-row: span 2;
+      background-color: var(--secondary-color);
+      color: var(--light-color);
+    }
+
+    .bento.layout-1> :nth-child(n + 9) {
+      display: none;
+    }
+
+    .icon {
+      font-size: inherit;
+      color: inherit;
+      display: inline-block;
+    }
+
+    .icon-block {
+      --icon-block-icon: #454545;
+      --icon-block-background: rgba(26, 26, 26, 0.07);
+      --icon-block-border: transparent;
+      --icon-block-border-width: 1px;
+      --icon-block-radius: 0.5rem;
+      --icon-block-size: 3rem;
+      --icon-block-icon-size: 1.5rem;
+      background-color: var(--icon-block-background);
+      border-radius: var(--icon-block-radius);
+      color: var(--icon-block-icon);
+      height: var(--icon-block-size);
+      width: var(--icon-block-size);
+      font-size: var(--icon-block-icon-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-block.expressive-dark {
+      --icon-block-icon: #ffffff;
+      --icon-block-background: var(--expressive-rich);
+    }
+
+    .icon-block-xl {
+      --icon-block-size: 4rem;
+      --icon-block-icon-size: 2rem;
+      --icon-block-radius: 0.5rem;
+    }
+
+    [class^=title-] .icon,
+    [class^=headline-] .icon,
+    [class^=display-] .icon {
+      margin-right: 0.5rem;
+    }
+
+    .display-03 .icon {
+      margin-right: 1rem;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="dashboard-wrap">
+    <h1 class="headline-02">Dashboard</h1>
+
+    <div class="tabs" id="dashboard-tabs">
+      <div class="tab-items">
+        <div class="tab-items-scroll">
+          <ul class="nav nav-underline" role="tablist">
+            <li class="nav-item"><a class="nav-link active" href="#activity" data-tab="activity" role="tab">Activity</a>
+            </li>
+            <li class="nav-item"><a class="nav-link" href="#performance" data-tab="performance"
+                role="tab">Performance</a></li>
+            <li class="nav-item"><a class="nav-link" href="#policy-status" data-tab="policy-status" role="tab">Policy
+                Status</a></li>
+            <li class="nav-item"><a class="nav-link" href="#renewals" data-tab="renewals" role="tab">Renewals</a></li>
+            <li class="nav-item"><a class="nav-link" href="#sanctions" data-tab="sanctions" role="tab">Sanctions</a>
+            </li>
+            <li class="nav-item"><a class="nav-link" href="#tasks" data-tab="tasks" role="tab">Tasks</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tab-content">
+
+        <!-- ACTIVITY -->
+        <div class="tab-pane active" id="activity" role="tabpanel">
+          <div class="row widget-row-gap">
+            <div class="col-12 col-lg-4">
+              <article class="card card-body">
+                <div class="kpi-header">
+                  <header>
+                    <h4 class="title-01">56 actions</h4>
+                    <p class="body-01">in the last 7 days</p>
+                  </header>
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-bolt"></i>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="col-12 col-lg-8">
+              <article class="card card-body">
+                <div class="key-value">
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                  </div>
+                  <header>
+                    <h4 class="title-01">Recent client activity</h4>
+                    <p class="body-01">Latest updates across your accounts</p>
+                  </header>
+                </div>
+
+                <div class="list-unstyled justify-content-between w-100">
+                  <div class="border-top d-flex justify-content-between list-item py-2">
+                    <span class="body-01 text-truncate">Andrea Chilton updated a file</span>
+                    <span class="body-01" style="color: rgba(26, 26, 26, 0.625)">20m ago</span>
+                  </div>
+                  <div class="border-top d-flex justify-content-between list-item py-2">
+                    <span class="body-01 text-truncate">Katerina Danilovska initiated MFA</span>
+                    <span class="body-01" style="color: rgba(26, 26, 26, 0.625)">25m ago</span>
+                  </div>
+                  <div class="border-top d-flex justify-content-between list-item py-2">
+                    <span class="body-01 text-truncate">Laurence Abbott viewed policy</span>
+                    <span class="body-01" style="color: rgba(26, 26, 26, 0.625)">29m ago</span>
+                  </div>
+                  <div class="border-top d-flex justify-content-between list-item py-2">
+                    <span class="body-01 text-truncate">Mark Fishwell added an attachment</span>
+                    <span class="body-01" style="color: rgba(26, 26, 26, 0.625)">30m ago</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <!-- PERFORMANCE -->
+        <div class="tab-pane" id="performance" role="tabpanel">
+          <div class="row widget-row-gap">
+            <div class="col-12 col-md-4">
+              <article class="card card-body">
+                <div class="kpi-header">
+                  <header>
+                    <h4 class="title-01">£124k</h4>
+                    <p class="body-01">Gross written premium</p>
+                  </header>
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-sterling-sign"></i>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <article class="card card-body">
+                <div class="kpi-header">
+                  <header>
+                    <h4 class="title-01">£6,268</h4>
+                    <p class="body-01">Avg. per policy</p>
+                  </header>
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-chart-line"></i>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <article class="card card-body">
+                <div class="kpi-header">
+                  <header>
+                    <h4 class="title-01">Top broker</h4>
+                    <p class="body-01">Keycare</p>
+                  </header>
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-trophy"></i>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="col-12">
+              <article class="card card-body">
+                <div class="key-value">
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-ranking-star"></i>
+                  </div>
+                  <header>
+                    <h4 class="title-01">Top 5 brands by commission</h4>
+                    <p class="body-01">This month</p>
+                  </header>
+                </div>
+
+                <div class="list-unstyled">
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span
+                      class="body-01">Keycare</span><span class="body-01">£12,000</span></div>
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span
+                      class="body-01">Aviva</span><span class="body-01">£10,500</span></div>
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span
+                      class="body-01">Towergate</span><span class="body-01">£9,800</span></div>
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span
+                      class="body-01">RSA</span><span class="body-01">£8,600</span></div>
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span
+                      class="body-01">Zurich</span><span class="body-01">£7,950</span></div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <!-- POLICY STATUS -->
+        <div class="tab-pane" id="policy-status" role="tabpanel">
+          <div class="row widget-row-gap">
+            <div class="col-12 col-md-4">
+           <article class="card-body card-sm" style="grid-area:Tasks-XS">
+              <header>
+                <h4 class="title-01">5 Sanctions</h4>
+                <p class="body-01">for reivew</p>
+
+              </header>
+              <div class="icon-block icon-block-xl expressive-dark expressive-tertiary">
+                <i class="fa-solid fa-person-circle-check"></i>
+              </div>
+            </article>
+
+
+              <article class="card card-body">
+                <div class="kpi-header">
+                  <header>
+                    <h4 class="title-01">120/123</h4>
+                    <p class="body-01">Policies active</p>
+                  </header>
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-file-shield"></i>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <article class="card card-body">
+                <div class="kpi-header">
+                  <header>
+                    <h4 class="title-01">90</h4>
+                    <p class="body-01">Invitations sent</p>
+                  </header>
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-paper-plane"></i>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <article class="card card-body">
+                <div class="kpi-header">
+                  <header>
+                    <h4 class="title-01">7</h4>
+                    <p class="body-01">Awaiting payment</p>
+                  </header>
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="col-12">
+              <article class="card card-body">
+                <div class="key-value">
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-rotate"></i>
+                  </div>
+                  <header>
+                    <h4 class="title-01">Policies due for renewal</h4>
+                    <p class="body-01">Next 30 days</p>
+                  </header>
+                </div>
+
+                <div class="list-unstyled">
+                  <div class="align-items-baseline border-top d-flex justify-content-between list-item py-2">
+                    <span class="body-01">Keycare – Open Market Motor</span>
+                    <div class="tag tag-status tag-status-info"><span class="tag-label">8/17</span></div>
+                  </div>
+                  <div class="align-items-baseline border-top d-flex justify-content-between list-item py-2">
+                    <span class="body-01">Aviva – Business Lines</span>
+                    <div class="tag tag-status tag-status-info"><span class="tag-label">6/9</span></div>
+                  </div>
+                  <div class="align-items-baseline border-top d-flex justify-content-between list-item py-2">
+                    <span class="body-01">Towergate – Business Lines</span>
+                    <div class="tag tag-status tag-status-info"><span class="tag-label">5/7</span></div>
+                  </div>
+                  <div class="align-items-baseline border-top d-flex justify-content-between list-item py-2">
+                    <span class="body-01">RSA – Business Lines – Supervisor</span>
+                    <div class="tag tag-status tag-status-info"><span class="tag-label">4/6</span></div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <!-- RENEWALS -->
+        <div class="tab-pane" id="renewals" role="tabpanel">
+          <div class="row widget-row-gap">
+            <div class="col-12 col-lg-6">
+              <article class="card card-body">
+                <div class="key-value">
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                  </div>
+                  <header>
+                    <h4 class="title-01">Renewals</h4>
+                    <p class="body-01">150/200 completed</p>
+                  </header>
+                </div>
+
+                <div class="progress-container">
+                  <div class="progress-header">
+                    <span class="progress-helper">Progress</span>
+                    <span class="progress-helper">75%</span>
+                  </div>
+                  <div class="progress" style="height: 0.5rem;">
+                    <div class="progress-bar" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0"
+                      aria-valuemax="100"></div>
+                  </div>
+                  <div class="progress-note" style="color: rgba(26, 26, 26, 0.625)">Due between 29/12/2025–29/01/2026
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <article class="card card-body">
+                <div class="key-value">
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary" aria-hidden="true">
+                    <i class="fa-solid fa-list"></i>
+                  </div>
+                  <header>
+                    <h4 class="title-01">Policies due for renewal</h4>
+                    <p class="body-01">Grouped by product</p>
+                  </header>
+                </div>
+
+                <div class="list-unstyled justify-content-between w-100">
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span class="body-01">Keycare –
+                      Open Market Motor</span><span class="body-01">17</span></div>
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span class="body-01">Aviva –
+                      Business Lines</span><span class="body-01">9</span></div>
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span class="body-01">Towergate
+                      – Business Lines</span><span class="body-01">7</span></div>
+                  <div class="border-top d-flex justify-content-between list-item py-2"><span class="body-01">RSA –
+                      Business Lines – Supervisor</span><span class="body-01">6</span></div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <!-- SANCTIONS -->
+        <div class="tab-pane" id="sanctions" role="tabpanel">
+          <section class="bento">
+            <!-- Task XS -->
+            <article class="card-body card-sm" style="grid-area:Tasks-XS">
+              <header>
+                <h4 class="title-01">5 Sanctions</h4>
+                <p class="body-01">for reivew</p>
+
+              </header>
+              <div class="icon-block icon-block-xl expressive-dark expressive-tertiary">
+                <i class="fa-solid fa-person-circle-check"></i>
+              </div>
+            </article>
+            <!-- Task S -->
+            <article class="card-body card-sm" style="grid-area:Tasks-S">
+              <div class="key-value" ;>
+            <div class="icon-block icon-block-md expressive-dark expressive-tertiary">
+                <i class="fa-solid fa-person-circle-check"></i>
+              </div>
+                <header>
+                  <h4 class="title-01">5 Sanctions pending</h4>
+                  <p class="body-01">for reivew</p>
+                </header>
+              </div>
+              <div class="grid key-value-grid w-100" columns: 3;>
+                <div class="key-value key-value-item key-value-stacked">
+                  <span class="key">Flagged </span>
+                  <span class="value">16</span>
+                </div>
+                <div class="key-value key-value-item key-value-stacked">
+                  <span class="key">Overridden</span>
+                  <span class="value">2</span>
+                </div>
+                <div class="key-value key-value-item key-value-stacked">
+                  <span class="key">Errors</span>
+                  <span class="value">7</span>
+                </div>
+              </div>
+            </article>
+            <!-- Task M -->
+            
+<!-- Sanctions M -->
+<article class="card-body" style="grid-area:Tasks-M">
+
+  <!-- Header -->
+  <div class="key-value">
+    <div class="icon-block icon-block-md expressive-dark expressive-tertiary">
+      <i class="fa-solid fa-person-circle-check"></i>
+    </div>
+    <header>
+      <h4 class="title-01">5 Sanctions</h4>
+      <p class="body-01">For review</p>
+    </header>
+  </div>
+
+  <!-- List -->
+  <div id="sanctions-list" class="list-unstyled justify-content-between w-100">
+
+    <!-- Row item -->
+    <div id="sanc1" class="align-items-center border-top d-flex list-item py-2">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Isabella Nguyen</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+     <div id="sanc2" class="align-items-center border-top d-flex list-item py-2 gap-4">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Sofia Patel</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+    <div id="sanc3" class="align-items-center border-top d-flex list-item py-2 gap-4">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Liam Smith</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+     <div id="sanc4" class="align-items-center border-top d-flex list-item py-2 gap-4">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Owen Davies</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+     <div id="sanc5" class="align-items-center border-top d-flex list-item py-2 gap-4">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Mia Thompson</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+  </div>
+</article>
+
+            <!-- Task L -->
+            <article class="card-body" style="grid-area:Tasks-L">
+  <!-- Header -->
+  <div class="key-value">
+    <div class="icon-block icon-block-md expressive-dark expressive-tertiary">
+      <i class="fa-solid fa-person-circle-check"></i>
+    </div>
+    <header>
+      <h4 class="title-01">5 Sanctions</h4>
+      <p class="body-01">For review</p>
+    </header>
+  </div>
+
+  <!-- List -->
+  <div id="sanctions-list" class="list-unstyled justify-content-between w-100">
+
+    <!-- Row item -->
+    <div id="sanc1" class="align-items-center border-top d-flex list-item py-2">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Isabella Nguyen</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+     <div id="sanc2" class="align-items-center border-top d-flex list-item py-2 gap-4">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Sofia Patel</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+    <div id="sanc3" class="align-items-center border-top d-flex list-item py-2 gap-4">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Liam Smith</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+     <div id="sanc4" class="align-items-center border-top d-flex list-item py-2 gap-4">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Owen Davies</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+     <div id="sanc5" class="align-items-center border-top d-flex list-item py-2 gap-4">
+
+      <div class="d-flex align-items-start gap-3 text-truncate">
+        <div class="icon-block-xs expressive-dark expressive-tertiary">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+
+        <div class="d-flex flex-column gap-1 text-truncate">
+          <div class="value-01 text-truncate">Mia Thompson</div>
+          <div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">
+            999/027/Y049/DEL
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <span class="body-01">5/5</span>
+          <div class="icon-block-xs expressive-dark expressive-tertiary">
+            <i class="fa-solid fa-arrow-up"></i>
+          </div>
+        </div>
+        <span class="body-01">79%</span>
+      </div>
+
+    </div>
+  </div>
+</article>
+          </section>
+        </div>
+
+        <!-- TASKS (exact internal structure from your original file; only added 'card' class and removed grid-area style) -->
+        <div class="tab-pane" id="tasks" role="tabpanel">
+          <section class="bento">
+            <!-- Task XS -->
+            <article class="card-body card-sm" style="grid-area:Tasks-XS">
+              <header>
+                <h4 class="title-01"> 25 tasks </h4>
+                <p class="body-01">Assigned to you</p>
+
+              </header>
+              <div class="icon-block icon-block-xl expressive-dark expressive-secondary">
+                <i class="fa-solid fa-list-check"></i>
+              </div>
+            </article>
+            <!-- Task S -->
+            <article class="card-body card-sm" style="grid-area:Tasks-S">
+              <div class="key-value" ;>
+                <div class="icon-block icon-block-md expressive-dark expressive-secondary">
+                  <i class="fa-solid fa-list-check"></i>
+                </div>
+                <header>
+                  <h4 class="title-01"> 25 tasks </h4>
+                  <p class="body-01">Assigned to you</p>
+                </header>
+              </div>
+              <div class="grid key-value-grid w-100" columns: 3;>
+                <div class="key-value key-value-item key-value-stacked">
+                  <span class="key">Ready </span>
+                  <span class="value">16</span>
+                </div>
+                <div class="key-value key-value-item key-value-stacked">
+                  <span class="key">Ongoing</span>
+                  <span class="value">2</span>
+                </div>
+                <div class="key-value key-value-item key-value-stacked">
+                  <span class="key">Review</span>
+                  <span class="value">7</span>
+                </div>
+              </div>
+            </article>
+            <!-- Task M -->
+            <article class="card-body" style="grid-area:Tasks-M">
+              <div class="key-value" ;>
+                <div class="icon-block icon-block-md expressive-dark expressive-secondary">
+                  <i class="fa-solid fa-list-check"></i>
+                </div>
+                <header>
+                  <h4 class="title-01"> 25 tasks </h4>
+                  <p class="body-01">Assigned to you</p>
+                </header>
+              </div>
+
+
+              <div id="tasks-list" class="list-unstyled justify-content-between w-100">
+                <div class="align-items-baseline key-value" ;>
+                  <icon class="icon fa-solid fa-chevron-down"></icon>
+                  <h4 class="title-01"> To do </h4>
+                  <div class="tag tag-status tag-status-info">
+                    <span class="tag-label">5 </span>
+                  </div>
+
+
+                </div>
+                <div id="task1" class="align-items-baseline border-top d-flex justify-content-between list-item py-2">
+                  <Div class="text-truncate align-middle">
+                    <input type="checkbox" class="form-check-input" id="taskcomplete1" name="task1" value="Complete">
+                    <label class="body-01" for="taskcomplete1"> Claim Added - WOOLF Emailed to Kinetic</label>
+                  </Div>
+
+                </div>
+                <div id="task2" class="align-items-baseline border-top d-flex justify-content-between list-item py-2" ;>
+                  <div>
+                    <input type="checkbox" class="form-check-input" id="taskcomplete2" name="task2" value="Complete">
+                    <label class="body-01 text-truncate" for="taskcomplete2"> Telephone Call Subs - Quote</label>
+                  </Div>
+
+                </div>
+                <div id="task3" class="border-top d-flex justify-content-between list-item py-2" ;>
+                  <div>
+                    <input type="checkbox" class="form-check-input" id="taskcomplete3" name="task3" value="Complete">
+                    <label class="body-01 text-truncate" for="taskcomplete3"> Audit Printed</label>
+                  </Div>
+
+                </div>
+                <div id="task4" class="border-top d-flex justify-content-between list-item py-2" ;>
+                  <div>
+                    <input type="checkbox" class="form-check-input" id="taskcomplete4" name="task4" value="Complete">
+                    <label class="body-01 text-truncate" for="taskcomplete4"> Agreed Value</label>
+                  </div>
+
+                </div>
+                <div id="task5" class="border-top d-flex justify-content-between list-item py-2" ;>
+                  <div>
+                    <input type="checkbox" class="form-check-input" id="taskcomplete5" name="task5" value="Complete">
+                    <label class="body-01 text-truncate" for="taskcomplete5"> Telephone Call Subs - Quote</label>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <!-- Task L -->
+            <article class="card-body" style="grid-area:Tasks-L">
+              <div class="d-flex flex-column gap-4 w-100">
+                <div class="key-value" ;>
+                  <div class="icon-block icon-block-md expressive-dark expressive-secondary">
+                    <i class="fa-solid fa-list-check"></i>
+                  </div>
+                  <header>
+                    <h4 class="title-01"> 25 tasks </h4>
+                    <p class="body-01">Assigned to you</p>
+                  </header>
+                </div>
+
+
+
+                <div id="tasks-list" class="list-unstyled justify-content-between w-100">
+                  <div class="align-items-baseline key-value" ;>
+                    <icon class="icon fa-solid fa-chevron-down"></icon>
+                    <h4 class="title-01"> To do </h4>
+                    <div class="tag tag-status tag-status-info">
+                      <span class="tag-label">5 </span>
+                    </div>
+
+
+                  </div>
+                  <div id="task1" class="align-items-baseline border-top d-flex justify-content-between list-item py-3"
+                    ;>
+                    <Div>
+                      <input type="checkbox" class="form-check-input" id="taskcomplete1" name="task1" value="Complete">
+                      <label class="body-01" for="taskcomplete1"> Claim Added - WOOLF Emailed to Kinetic</label>
+                    </Div>
+                    <div class="avatar avatar-xs">KD</div>
+                  </div>
+                  <div id="task2" class="align-items-baseline border-top d-flex justify-content-between list-item py-3"
+                    ;>
+                    <div>
+                      <input type="checkbox" class="form-check-input" id="taskcomplete2" name="task2" value="Complete">
+                      <label class="body-01" for="taskcomplete2"> Telephone Call Subs - Quote</label>
+                    </Div>
+                    <div class="avatar avatar-xs">KD</div>
+                  </div>
+                  <div id="task3" class="border-top d-flex justify-content-between list-item py-3" ;>
+                    <div>
+                      <input type="checkbox" class="form-check-input" id="taskcomplete3" name="task3" value="Complete">
+                      <label class="body-01" for="taskcomplete3"> Audit Printed</label>
+                    </Div>
+                    <div class="avatar avatar-xs">KD</div>
+                  </div>
+                  <div id="task4" class="border-top d-flex justify-content-between list-item py-3" ;>
+                    <div>
+                      <input type="checkbox" class="form-check-input" id="taskcomplete4" name="task4" value="Complete">
+                      <label class="body-01" for="taskcomplete4"> Agreed Value</label>
+                    </div>
+                    <div class="avatar avatar-xs">KD</div>
+                  </div>
+                  <div id="task5" class="border-top d-flex justify-content-between list-item py-3" ;>
+                    <div>
+                      <input type="checkbox" class="form-check-input" id="taskcomplete5" name="task5" value="Complete">
+                      <label class="body-01" for="taskcomplete5"> Telephone Call Subs - Quote</label>
+                    </div>
+                    <div class="avatar avatar-xs">KD</div>
+                  </div>
+                </div>
+
+              </div>
+            </article>
+
+          </section>
+        </div>
+  </main>
+
+  <script>
+    // Tabs controller (vanilla) compatible with compiled.css tab styles
+    const links = document.querySelectorAll('#dashboard-tabs .nav-link');
+    const panes = document.querySelectorAll('#dashboard-tabs .tab-pane');
+
+    links.forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = link.getAttribute('data-tab');
+
+        links.forEach((l) => l.classList.remove('active'));
+        link.classList.add('active');
+
+        panes.forEach((p) => {
+          p.classList.toggle('active', p.id === id);
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

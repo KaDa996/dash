@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" data-bh-theme="buckholt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Builder – v5.2 (guides + XS fix + reorder + X delete)</title>
+  <link rel="stylesheet" href="compiled.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <style>
+    .widget-panel { position: fixed; top: 0; right: 0; height: 100vh; width: 420px; max-width: 90vw; background: var(--ui-background-01); border-left: 1px solid var(--ui-border-02); box-shadow: var(--shadow-lg); transform: translateX(100%); transition: transform .25s ease; z-index: 1040; display: flex; flex-direction: column; }
+    .widget-panel.open { transform: translateX(0); }
+    .widget-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--ui-border-02); }
+    .widget-panel-body { flex: 1 1 auto; overflow: auto; padding: 1rem; }
+
+    .template-list { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+    .widget-template { border: 1px dashed var(--ui-border-02); border-radius: var(--border-radius-md); padding: .5rem; background: var(--ui-background-03); }
+    .widget-template[draggable="true"] { cursor: grab; }
+    .widget-template:active { cursor: grabbing; }
+
+    .dashboard-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+
+    #grid { position: relative; background: var(--ui-background-02); border-radius: var(--border-radius-lg); }
+    .grid-bg { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; }
+    /* Cell lines every 184px (160 cell + 24 gap) */
+    .grid-bg { background-size: 184px 184px; background-image: 
+      linear-gradient(to right, rgba(0,0,0,.12) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,.12) 1px, transparent 1px);
+    }
+    /* Gap shading bands: show spacing region distinctly */
+    .grid-lines { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background-image:
+      repeating-linear-gradient(to right, transparent 0, transparent 160px, rgba(0,0,0,.06) 160px, rgba(0,0,0,.06) 184px),
+      repeating-linear-gradient(to bottom, transparent 0, transparent 160px, rgba(0,0,0,.06) 160px, rgba(0,0,0,.06) 184px);
+      background-size: 184px 184px;
+    }
+
+    .placed { position: absolute; }
+    .placed .card { height: 100%; }
+    .placed .card-body { height: 100%; overflow: auto; overscroll-behavior: contain; }
+    .placed .widget-controls { position: absolute; top: .25rem; right: .25rem; display: none; gap: .25rem; z-index: 5; }
+    .is-edit .placed .widget-controls { display: flex; }
+    .dragging { opacity: .75; }
+
+    .control-x { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; }
+    .control-x:hover { background: var(--ui-background-03); }
+
+    .drop-preview { position: absolute; border: 2px dashed var(--action-02); border-radius: var(--border-radius-lg); background: rgba(0,0,0,.03); }
+    .drop-preview.invalid { border-color: var(--support-error); background: rgba(255,0,0,.06); }
+
+    .push-options { position: absolute; z-index: 10; background: var(--ui-background-01); border: 1px solid var(--ui-border-02); border-radius: .5rem; padding: .5rem; box-shadow: var(--shadow-md); }
+
+    .toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 1090; display: flex; flex-direction: column; gap: 1rem; }
+
+    .is-edit #grid { min-height: 360px; }
+
+    /* XS content fit: show full icon/text without scroll */
+    .size-xs .card-body { overflow: hidden; }
+    .size-xs .icon-block.icon-block-xl i { font-size: 2rem; }
+    .size-xs .card-body { padding: 1rem; }
+  </style>
+</head>
+<body>
+  <section class="page-body">
+    <div class="page-section">
+      <div class="container">
+        <div class="content-group">
+
+          <div class="dashboard-header">
+            <div class="text-block"><div class="heading"><h2 class="h2">Dashboard</h2></div></div>
+            <div class="button-set">
+              <button id="btnTopAdd" class="btn btn-secondary" style="display:none"><span class="button-label">Add widgets</span></button>
+              <button id="btnTopEdit" class="btn btn-secondary" style="display:none"><span class="button-label">Edit</span></button>
+              <button id="btnFinish" class="btn btn-primary" style="display:none"><span class="button-label">Finish</span></button>
+            </div>
+          </div>
+
+          <div id="dashboard" class="content-group">
+            <div id="empty" class="empty-state">
+              <h4 class="h4">Your dashboard is empty</h4>
+              <p class="body-02">Click <strong>Add widgets</strong> to pick from the library and drop them onto the grid.</p>
+              <div class="button-set"><button id="btnAddFromEmpty" class="btn btn-secondary"><span class="button-label">Add widgets</span></button></div>
+            </div>
+            <div id="grid" style="display:none">
+              <div class="grid-bg"></div>
+              <div class="grid-lines"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside id="panel" class="widget-panel" aria-label="Widget library">
+    <div class="widget-panel-header"><h3 class="h5">Add widgets</h3><div class="button-set"><button id="btnClosePanel" class="btn btn-ghost"><span class="button-label">Close</span></button></div></div>
+    <div class="widget-panel-body">
+      <div class="tabs">
+        <div class="tab-items">
+          <nav class="nav nav-underline" id="panelTabs" role="tablist">
+            <a class="nav-link" href="#panel-sanctions" role="tab">Sanctions</a>
+            <a class="nav-link" href="#panel-tasks" role="tab">Tasks</a>
+          </nav>
+        </div>
+        <div class="tab-content">
+          <div class="tab-pane active" id="panel-sanctions">
+            <div class="template-list">
+              <!-- XS -->
+              <div class="widget-template" draggable="true" data-key="sanctions_xs" data-size="XS">
+                <div class="card"><article class="card-body card-sm">
+                  <header><h4 class="title-01">5 Sanctions</h4><p class="body-01">for reivew</p></header>
+                  <div class="icon-block icon-block-xl expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div>
+                </article></div>
+              </div>
+              <!-- S -->
+              <div class="widget-template" draggable="true" data-key="sanctions_s" data-size="S">
+                <div class="card"><article class="card-body card-sm">
+                  <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div><header><h4 class="title-01">5 Sanctions pending</h4><p class="body-01">for reivew</p></header></div>
+                  <div class="grid key-value-grid w-100">
+                    <div class="key-value key-value-item key-value-stacked"><span class="key">Flagged </span><span class="value">16</span></div>
+                    <div class="key-value key-value-item key-value-stacked"><span class="key">Overridden</span><span class="value">2</span></div>
+                    <div class="key-value key-value-item key-value-stacked"><span class="key">Errors</span><span class="value">7</span></div>
+                  </div>
+                </article></div>
+              </div>
+              <!-- M -->
+              <div class="widget-template" draggable="true" data-key="sanctions_m" data-size="M">
+                <div class="card"><article class="card-body">
+                  <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div><header><h4 class="title-01">5 Sanctions</h4><p class="body-01">For review</p></header></div>
+                  <div id="sanctions-list" class="list-unstyled justify-content-between w-100">
+                    <!-- 5 rows -->
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Isabella Nguyen</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Sofia Patel</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Liam Smith</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Owen Davies</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Mia Thompson</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                  </div>
+                </article></div>
+              </div>
+              <!-- L -->
+              <div class="widget-template" draggable="true" data-key="sanctions_l" data-size="L">
+                <div class="card"><article class="card-body">
+                  <div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-tertiary"><i class="fa-solid fa-person-circle-check"></i></div><header><h4 class="title-01">5 Sanctions</h4><p class="body-01">For review</p></header></div>
+                  <div id="sanctions-list" class="list-unstyled justify-content-between w-100">
+                    <!-- 5 rows -->
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Isabella Nguyen</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Sofia Patel</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Liam Smith</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Owen Davies</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                    <div class="align-items-center border-top d-flex list-item py-2"><div class="d-flex align-items-start gap-3 text-truncate"><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-ban"></i></div><div class="d-flex flex-column gap-1 text-truncate"><div class="value-01 text-truncate">Mia Thompson</div><div class="key-01 text-truncate" style="color: rgba(26,26,26,0.625);">999/027/Y049/DEL</div></div></div><div class="d-flex align-items-center gap-3 flex-shrink-0 ms-auto"><div class="d-flex align-items-center gap-2"><span class="body-01">5/5</span><div class="icon-block-xs expressive-dark expressive-tertiary"><i class="fa-solid fa-arrow-up"></i></div></div><span class="body-01">79%</span></div></div>
+                  </div>
+                </article></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="panel-tasks">
+            <div class="template-list">
+              <!-- XS -->
+              <div class="widget-template" draggable="true" data-key="tasks_xs" data-size="XS">
+                <div class="card"><article class="card-body card-sm"><header><h4 class="title-01">25 tasks</h4><p class="body-01">Assigned to you</p></header><div class="icon-block icon-block-xl expressive-dark expressive-secondary"><i class="fa-solid fa-list-check"></i></div></article></div>
+              </div>
+              <!-- S -->
+              <div class="widget-template" draggable="true" data-key="tasks_s" data-size="S">
+                <div class="card"><article class="card-body card-sm"><div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-secondary"><i class="fa-solid fa-list-check"></i></div><header><h4 class="title-01">25 tasks</h4><p class="body-01">Assigned to you</p></header></div><div class="grid key-value-grid w-100"><div class="key-value key-value-item key-value-stacked"><span class="key">Ready </span><span class="value">16</span></div><div class="key-value key-value-item key-value-stacked"><span class="key">Ongoing</span><span class="value">2</span></div><div class="key-value key-value-item key-value-stacked"><span class="key">Review</span><span class="value">7</span></div></div></article></div>
+              </div>
+              <!-- M -->
+              <div class="widget-template" draggable="true" data-key="tasks_m" data-size="M">
+                <div class="card"><article class="card-body"><div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-secondary"><i class="fa-solid fa-list-check"></i></div><header><h4 class="title-01">25 tasks</h4><p class="body-01">Assigned to you</p></header></div><div id="tasks-list" class="list-unstyled justify-content-between w-100"><div class="align-items-baseline key-value"><icon class="icon fa-solid fa-chevron-down"></icon><h4 class="title-01"> To do </h4><div class="tag tag-status tag-status-info"><span class="tag-label">5 </span></div></div><div id="task1" class="align-items-baseline border-top d-flex justify-content-between list-item py-2"><div class="text-truncate align-middle"><input type="checkbox" class="form-check-input" id="taskcomplete1"><label class="body-01" for="taskcomplete1"> Claim Added - WOOLF Emailed to Kinetic</label></div></div><div id="task2" class="align-items-baseline border-top d-flex justify-content-between list-item py-2"><div><input type="checkbox" class="form-check-input" id="taskcomplete2"><label class="body-01 text-truncate" for="taskcomplete2"> Telephone Call Subs - Quote</label></div></div><div id="task3" class="border-top d-flex justify-content-between list-item py-2"><div><input type="checkbox" class="form-check-input" id="taskcomplete3"><label class="body-01 text-truncate" for="taskcomplete3"> Audit Printed</label></div></div><div id="task4" class="border-top d-flex justify-content-between list-item py-2"><div><input type="checkbox" class="form-check-input" id="taskcomplete4"><label class="body-01 text-truncate" for="taskcomplete4"> Agreed Value</label></div></div><div id="task5" class="border-top d-flex justify-content-between list-item py-2"><div><input type="checkbox" class="form-check-input" id="taskcomplete5"><label class="body-01 text-truncate" for="taskcomplete5"> Telephone Call Subs - Quote</label></div></div></div></article></div>
+              </div>
+              <!-- L -->
+              <div class="widget-template" draggable="true" data-key="tasks_l" data-size="L">
+                <div class="card"><article class="card-body"><div class="d-flex flex-column gap-4 w-100"><div class="key-value"><div class="icon-block icon-block-md expressive-dark expressive-secondary"><i class="fa-solid fa-list-check"></i></div><header><h4 class="title-01">25 tasks</h4><p class="body-01">Assigned to you</p></header></div><div id="tasks-list" class="list-unstyled justify-content-between w-100"><div class="align-items-baseline key-value"><icon class="icon fa-solid fa-chevron-down"></icon><h4 class="title-01"> To do </h4><div class="tag tag-status tag-status-info"><span class="tag-label">5 </span></div></div><div id="task1" class="align-items-baseline border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete1l"><label class="body-01" for="taskcomplete1l"> Claim Added - WOOLF Emailed to Kinetic</label></div><div class="avatar avatar-xs">KD</div></div><div id="task2" class="align-items-baseline border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete2l"><label class="body-01" for="taskcomplete2l"> Telephone Call Subs - Quote</label></div><div class="avatar avatar-xs">KD</div></div><div id="task3" class="border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete3l"><label class="body-01" for="taskcomplete3l"> Audit Printed</label></div><div class="avatar avatar-xs">KD</div></div><div id="task4" class="border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete4l"><label class="body-01" for="taskcomplete4l"> Agreed Value</label></div><div class="avatar avatar-xs">KD</div></div><div id="task5" class="border-top d-flex justify-content-between list-item py-3"><div><input type="checkbox" class="form-check-input" id="taskcomplete5l"><label class="body-01" for="taskcomplete5l"> Telephone Call Subs - Quote</label></div><div class="avatar avatar-xs">KD</div></div></div></div></article></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div id="toasts" class="toast-container" aria-live="polite"></div>
+
+  <script>
+    const CELL_SIZE = 160; const GAP = 24; const GRID_COLS = 7; const GRID_ROWS = 4;
+    let editMode = false; const placed = []; let draggedIndex = null; let previewSize = null;
+
+    const grid = document.getElementById('grid'); const emptyState = document.getElementById('empty'); const panel = document.getElementById('panel');
+    const btnTopAdd = document.getElementById('btnTopAdd'); const btnTopEdit = document.getElementById('btnTopEdit'); const btnFinish = document.getElementById('btnFinish');
+    const btnAddFromEmpty = document.getElementById('btnAddFromEmpty'); const btnClosePanel = document.getElementById('btnClosePanel');
+
+    function sizeGrid(){ const w = GRID_COLS * (CELL_SIZE + GAP) - GAP; const h = GRID_ROWS * (CELL_SIZE + GAP) - GAP; grid.style.width = w + 'px'; grid.style.height = h + 'px'; }
+    sizeGrid();
+
+    (function(){ const tabsNav = document.getElementById('panelTabs'); const panes = document.querySelectorAll('.tab-content .tab-pane'); tabsNav.querySelectorAll('.nav-link')[0].classList.add('active'); panes[0].classList.add('active'); tabsNav.addEventListener('click', (e)=>{ const link = e.target.closest('.nav-link'); if(!link) return; e.preventDefault(); tabsNav.querySelectorAll('.nav-link').forEach(a=>a.classList.remove('active')); link.classList.add('active'); const id = link.getAttribute('href').substring(1); panes.forEach(p=>p.classList.toggle('active', p.id===id)); }); })();
+
+    function openPanel(){ panel.classList.add('open'); } function closePanel(){ panel.classList.remove('open'); }
+    function beginEdit(){ setEdit(true); emptyState.style.display='none'; grid.style.display=''; openPanel(); }
+    function setEdit(flag){ editMode = !!flag; document.body.classList.toggle('is-edit', editMode); btnFinish.style.display = editMode ? 'inline-flex' : 'none'; updateHeaderButtons(); }
+    function hasWidgets(){ return placed.length > 0; }
+    function updateHeaderButtons(){ if(!editMode){ btnTopAdd.style.display = hasWidgets()? 'none':'inline-flex'; btnTopEdit.style.display = hasWidgets()? 'inline-flex':'none'; if(!hasWidgets()){ grid.style.display='none'; emptyState.style.display=''; } } else { btnTopAdd.style.display='none'; btnTopEdit.style.display='none'; } }
+    btnAddFromEmpty.addEventListener('click', beginEdit); btnTopAdd.addEventListener('click', beginEdit); btnTopEdit.addEventListener('click', beginEdit);
+    btnFinish.addEventListener('click', ()=>{ setEdit(false); closePanel(); showSavedToast(); updateHeaderButtons(); }); btnClosePanel.addEventListener('click', ()=> closePanel());
+
+    const sizeMap = { XS:{w:1,h:1,label:'XS'}, S:{w:2,h:1,label:'S'}, M:{w:2,h:2,label:'M'}, L:{w:3,h:3,label:'L'} };
+    function mapSize(raw){ const key = (raw||'XS').toUpperCase().trim(); return sizeMap[key] || sizeMap.XS; }
+    function inferLabel(p){ if(p.w===1&&p.h===1) return 'XS'; if(p.w===2&&p.h===1) return 'S'; if(p.w===2&&p.h===2) return 'M'; if(p.w===3&&p.h===3) return 'L'; return 'XS'; }
+
+    function canPlace(col,row,w,h){ if(col<0||row<0||col+w>GRID_COLS||row+h>GRID_ROWS) return false; return !placed.some(p=> col < p.col+p.w && col+w > p.col && row < p.row+p.h && row+h > p.row); }
+    function canPlaceExcluding(col,row,w,h,exclude){ if(col<0||row<0||col+w>GRID_COLS||row+h>GRID_ROWS) return false; return !placed.some((p,i)=>{ if(i===exclude) return false; return col < p.col+p.w && col+w > p.col && row < p.row+p.h && row+h > p.row; }); }
+
+    function showPushOptions(col,row,w,h,forMoveIndex=-1){ hidePushOptions(); const opts=document.createElement('div'); opts.className='push-options'; opts.id='pushOptions'; const displayCol=Math.max(0,Math.min(col,GRID_COLS-1)); const displayRow=Math.max(0,Math.min(row,GRID_ROWS-1)); const x=displayCol*(CELL_SIZE+GAP)+CELL_SIZE/2; const y=displayRow*(CELL_SIZE+GAP)+CELL_SIZE/2; opts.style.left=x+'px'; opts.style.top=y+'px'; opts.style.transform='translate(-50%,-50%)'; let html='<h4>Choose a push option</h4>'; const dirs=['right','left','down','up']; dirs.forEach(dir=>{ html+=`<button data-dir="${dir}">Push ${dir}</button>`; }); html+='<button class="cancel">Cancel</button>'; opts.innerHTML=html; grid.appendChild(opts); opts.querySelectorAll('button[data-dir]').forEach(b=> b.addEventListener('click',()=>{ hidePushOptions(); })); opts.querySelector('.cancel').addEventListener('click', hidePushOptions); }
+    function hidePushOptions(){ const el=document.getElementById('pushOptions'); if(el) el.remove(); }
+
+    function showPreview(col,row,w,h,valid){ hidePreview(); const pr=document.createElement('div'); pr.id='dropPreview'; pr.className='drop-preview'+(valid?'':' invalid'); pr.style.width=(w*CELL_SIZE+(w-1)*GAP)+'px'; pr.style.height=(h*CELL_SIZE+(h-1)*GAP)+'px'; pr.style.left=(col*(CELL_SIZE+GAP))+'px'; pr.style.top=(row*(CELL_SIZE+GAP))+'px'; grid.appendChild(pr); }
+    function hidePreview(){ const pr=document.getElementById('dropPreview'); if(pr) pr.remove(); }
+
+    document.querySelectorAll('.widget-template').forEach(tpl=>{
+      tpl.addEventListener('dragstart',(e)=>{ const m = mapSize(tpl.dataset.size); previewSize = m; e.dataTransfer.setData('text/plain', tpl.dataset.key); e.dataTransfer.effectAllowed='copy'; });
+      tpl.addEventListener('dragend',()=>{ previewSize=null; hidePreview(); hidePushOptions(); });
+    });
+
+    function attachDragHandlers(idx, el){ el.draggable = editMode; if(!editMode) return; el.addEventListener('dragstart',(e)=>{ draggedIndex=idx; const p=placed[idx]; showPreview(p.col,p.row,p.w,p.h,true); el.classList.add('dragging'); e.dataTransfer.setData('text/plain','existing'); e.dataTransfer.effectAllowed='move'; }); el.addEventListener('dragend',()=>{ draggedIndex=null; el.classList.remove('dragging'); hidePreview(); }); }
+
+    grid.addEventListener('dragenter', (e)=>{ e.preventDefault(); });
+    grid.addEventListener('dragover',(e)=>{ e.preventDefault(); const rect=grid.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const col=Math.floor(x/(CELL_SIZE+GAP)); const row=Math.floor(y/(CELL_SIZE+GAP)); e.dataTransfer.dropEffect = (draggedIndex!==null)? 'move' : 'copy'; if(draggedIndex!==null){ const p=placed[draggedIndex]; const valid=canPlaceExcluding(col,row,p.w,p.h,draggedIndex); showPreview(col,row,p.w,p.h,valid); } else if(previewSize){ const valid=canPlace(col,row,previewSize.w,previewSize.h); showPreview(col,row,previewSize.w,previewSize.h,valid); } });
+    grid.addEventListener('dragleave',()=>{ hidePreview(); });
+    grid.addEventListener('drop',(e)=>{ e.preventDefault(); hidePreview(); const rect=grid.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const col=Math.max(0,Math.min(Math.floor(x/(CELL_SIZE+GAP)),GRID_COLS-1)); const row=Math.max(0,Math.min(Math.floor(y/(CELL_SIZE+GAP)),GRID_ROWS-1)); const data=e.dataTransfer.getData('text/plain'); if(draggedIndex!==null){ const p=placed[draggedIndex]; if(canPlaceExcluding(col,row,p.w,p.h,draggedIndex)){ p.col=col; p.row=row; renderPlaced(); } else { showPushOptions(col,row,p.w,p.h,draggedIndex); } draggedIndex=null; return; } if(!data) return; const tpl=document.querySelector(`.widget-template[data-key="${data}"]`); if(!tpl) return; const m=mapSize(tpl.dataset.size); const html=tpl.querySelector('.card').outerHTML; if(canPlace(col,row,m.w,m.h)){ placed.push({col,row,w:m.w,h:m.h,size:m.label,html,id:`${data}-${Date.now()}`}); renderPlaced(); } else { showPushOptions(col,row,m.w,m.h); }
+    });
+
+    function renderPlaced(){ emptyState.style.display='none'; grid.style.display=''; grid.innerHTML='<div class="grid-bg"></div><div class="grid-lines"></div>'; placed.forEach((p,idx)=>{ const el=document.createElement('div'); el.className='placed'; const label = p.size || inferLabel(p); el.classList.add('size-' + label.toLowerCase()); el.style.width=(p.w*CELL_SIZE+(p.w-1)*GAP)+'px'; el.style.height=(p.h*CELL_SIZE+(p.h-1)*GAP)+'px'; el.style.left=(p.col*(CELL_SIZE+GAP))+'px'; el.style.top=(p.row*(CELL_SIZE+GAP))+'px'; el.innerHTML = p.html + `<div class="widget-controls"><button class="control-x btn btn-ghost btn-sm" data-del aria-label="Delete">&times;</button></div>`; grid.appendChild(el); attachDragHandlers(idx, el); const del=el.querySelector('[data-del]'); if(del){ del.addEventListener('click',()=>{ placed.splice(idx,1); renderPlaced(); updateHeaderButtons(); }); } }); updateHeaderButtons(); persist(); }
+
+    function showSavedToast(){ const host=document.getElementById('toasts'); const t=document.createElement('div'); t.className='toast toast-success show'; t.innerHTML='<div class="toast-content"><div class="toast-icon"><i class="fa fa-check"></i></div><div class="toast-body"><div class="toast-message"><strong>Layout saved</strong></div></div></div>'; host.appendChild(t); setTimeout(()=>{ t.classList.remove('show'); t.remove(); },2500); }
+
+    (function restore(){ const raw=localStorage.getItem('dashboard:grid:v5.2'); if(!raw){ updateHeaderButtons(); return; } try{ const arr=JSON.parse(raw)||[]; arr.forEach(p=> placed.push(p)); renderPlaced(); }catch(e){} })();
+    function persist(){ localStorage.setItem('dashboard:grid:v5.2', JSON.stringify(placed)); }
+
+    updateHeaderButtons();
+  </script>
+</body>
+</html>
